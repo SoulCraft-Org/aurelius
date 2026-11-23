@@ -1,5 +1,4 @@
 """Evolve the seat prompt with GEPA (MIT) on Modal behind the spend guard (#69, refs #60); the served student (Apache-2.0) also reflects."""
-
 import json
 import os
 import subprocess
@@ -28,9 +27,7 @@ app = modal.App("aurelius-gepa")
 image = serve.image.add_local_python_source("train")
 
 
-class SeatAdapter:
-    """GEPA's adapter: a candidate is {"prompt": text}, a data instance a dev seed, a score the share of items right."""
-
+class SeatAdapter:  # GEPA's adapter: a candidate is {"prompt": text}, a data instance a dev seed, a score the share of items right
     def __init__(self, spec, deadline):
         self.spec, self.deadline, self.log = spec, deadline, {}
 
