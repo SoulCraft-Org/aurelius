@@ -2,7 +2,7 @@
 
 The Lair simulates workers on a CPU. The Ladder scores a seat on the Lair, rung by rung.
 
-> 🚧 **No score exists yet.** Numbers come from the spec or the cited sources. Spec rates marked assumed stay so until real runs replace them.
+> 📊 **First sim scores are on the [README scoreboard](../README.md#-scoreboard).** Numbers here come from the spec or the cited sources. Spec rates marked assumed stay so until real runs replace them.
 
 Sources: [`spec/aurelius.json`](../spec/aurelius.json) and [`docs/sources.md`](sources.md), both read 2026-11-22.
 
