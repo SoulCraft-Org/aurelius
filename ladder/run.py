@@ -65,7 +65,7 @@ class _Leaf:
                     sim.at(wtype["seconds"], lambda _, k=key, r=reply: self.replies.__setitem__(k, r))
                 secs += [wtype["seconds"]] * len(keys)
             elif act["name"] == "check":  # a check is code: it costs credits, no sim time
-                keys = keys[: self.left // CHECK_COST]
+                keys = keys[: max(self.left, 0) // CHECK_COST]  # a negative balance pays for nothing
                 self.left -= CHECK_COST * len(keys)
                 for key in keys:
                     self.checked[key] = check(sim.rng, self.replies[key], self.items[key], self.spec)

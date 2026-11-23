@@ -95,16 +95,20 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         calls = data["choices"][0]["message"].get("tool_calls") or []
         acts = [{"name": c["function"]["name"], **json.loads(c["function"]["arguments"])} for c in calls]
         retry = {k for k, r in obs["replies"].items() if r["status"] == "failed" or obs["checked"].get(k) is False}
+        left = obs["budget_left"]["credits"]  # one running budget for the whole reply, not per action
         for a in acts:
             validate_action(self.spec, a)
             keys = a.get("children", [])
             if a["name"] == "map":
                 cost = self.types[a["worker_type"]]["credits_per_call"] * len(keys)
-                if not (keys and set(keys) <= set(obs["pending"]) | retry and cost <= obs["budget_left"]["credits"]):
+                if not (keys and set(keys) <= set(obs["pending"]) | retry and cost <= left):
                     raise ValueError("map must send resendable keys within budget_left")
+                left -= cost
             if a["name"] == "check" and not (keys and set(keys) <= set(obs["replies"]) - set(obs["checked"])
-                                             and len(keys) * CHECK_COST <= obs["budget_left"]["credits"]):
+                                             and len(keys) * CHECK_COST <= left):
                 raise ValueError("check must name unchecked replies it can pay for")
+            if a["name"] == "check":
+                left -= len(keys) * CHECK_COST
         if all(a["name"] == "wait" for a in acts):
             raise ValueError("no usable tool call")  # wait alone would spin the runner
         return acts

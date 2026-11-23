@@ -57,8 +57,11 @@ jobs:
             case "$seen" in *" $s "*) echo "a seat is listed twice" >&2; exit 1 ;; esac
             seen="$seen$s "
           done
+          seen_rungs=" "
           for r in $rungs; do
             case "$allowed_rungs" in *" $r "*) ;; *) echo "unknown rung: not in the allow-list" >&2; exit 1 ;; esac
+            case "$seen_rungs" in *" $r "*) echo "a rung is listed twice" >&2; exit 1 ;; esac
+            seen_rungs="$seen_rungs$r "
           done
           # The model seat costs money: r10 and r47 only, and one $1 ceiling split across the rungs it runs on.
           model_rungs=0

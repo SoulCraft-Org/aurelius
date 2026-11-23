@@ -46,8 +46,11 @@ class TestModelSeat(unittest.TestCase):
 
     def test_invalid_or_missing_tool_call_is_counted_and_ends(self):
         broke = {**OBS, "budget_left": {"credits": 0}}  # a check it cannot pay for would never advance
+        two = {**OBS, "pending": ["k1", "k2"], "budget_left": {"credits": 20}}  # each large map fits alone, not both
         for obs, calls in ((OBS, [("map", {"children": ["k1"]})]), (OBS, []), (OBS, [("dance", {})]),
-                           (OBS, [("map", {**MAP[1], "children": ["zz"]})]), (broke, [CHECK])):
+                           (OBS, [("map", {**MAP[1], "children": ["zz"]})]), (broke, [CHECK]),
+                           (two, [("map", {**MAP[1], "children": ["k1"], "worker_type": "large"}),
+                                  ("map", {**MAP[1], "children": ["k2"], "worker_type": "large"})])):  # 32 > 20: #54
             with self.subTest(calls=calls), reply(*calls):
                 seat = ModelSeat(SPEC)
                 self.assertEqual((names(seat.decide(obs)), seat.format_errors), (ENDS, 1))
