@@ -1,6 +1,6 @@
 # 🐉 How to train your dragon
 
-How the seat model is trained, rung by rung. Every source below was read on 2026-11-22. Figures marked "our estimate" are ours.
+How the seat model is trained, rung by rung. Every source below was read on 2026-11-22. Figures marked "our estimate" are ours. 🗣️ marks a score the vendor states about its own model.
 
 > ⚠️ **Nothing here is trained yet.** This page is the plan. The first sim scores, for a rule-based seat and three baselines, are on the [README scoreboard](../README.md#-scoreboard). No model score exists yet.
 
@@ -24,21 +24,36 @@ flowchart LR
 
 Gate targets come from the Egg's baseline scores, not from guesses made now.
 
-## 🧠 Base model
+## 🧠 Students
 
-| Use | Model | Licence | Source, read 2026-11-22 |
+Hatchling's first task is a bake-off. The winner takes the slot.
+
+| Slot | Model | Licence | Source, read 2026-11-22 |
 |---|---|---|---|
-| Iterate | Qwen3.5-9B, 262k context | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.5-9B) |
-| Release | Qwen3.8-27B, 27.8B parameters | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.8-27B) |
-| ❌ Never | Nemotron-Orchestrator-8B | NVIDIA License, non-commercial research only | [arXiv 2511.21689](https://arxiv.org/abs/2511.21689) |
+| Iterate | Qwen/Qwen3.5-9B, 262k context | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.5-9B) |
+| Release | Qwen/Qwen3.8-27B, 27.8B parameters | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.8-27B) |
+| Bake-off, release slot | thinkingmachines/Inkling-2-Mini | Apache-2.0 plus a use policy that binds derivatives | [Hugging Face](https://huggingface.co/thinkingmachines/Inkling-2-Mini) |
+| Bake-off, iterate slot | XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B, same architecture as Qwen3.5-9B | MIT | [Hugging Face](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B) |
+| ❌ Never | nvidia/Nemotron-Orchestrator-8B | NVIDIA License, non-commercial research only | [arXiv 2511.21689](https://arxiv.org/abs/2511.21689) |
+
+## 🎓 Teacher and judge
+
+| Job | Model | Licence | Note | Source, read 2026-11-22 |
+|---|---|---|---|---|
+| Teacher, writes the warm-up examples | deepseek-ai/DeepSeek-V4.1-Flash | MIT | Terminal-Bench 2.1 90.6 🗣️ | [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) |
+| Teacher fallback | zai-org/GLM-5.3 | not read | | [Hugging Face](https://huggingface.co/zai-org/GLM-5.3) |
+| Judge, grades practice runs | nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B | OpenMDW-1.1, the only licence found that explicitly frees outputs | A different family from the teacher | [Hugging Face](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [licence](https://openmdw.ai/license/1-1/) |
+
+The judge is calibrated on about 300 hand-ranked run pairs before RL. Its GenRM variant is self-hosted later.
 
 ## 🔧 Method
 
 | Step | What | Source, read 2026-11-22 |
 |---|---|---|
-| 1 | SFT warm-up on open-teacher data | our plan |
-| 2 | GRPO, one seat at a time, children frozen | [arXiv 2511.21689](https://arxiv.org/abs/2511.21689), [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
-| 3 | Split and finish bonuses fade to 0 | [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
+| 1 | SFT warm-up on DeepSeek-V4.1-Flash examples | our plan |
+| 2 | Calibrate the judge on about 300 hand-ranked run pairs | our plan |
+| 3 | GRPO, one seat at a time, children frozen, runs graded by the judge | [arXiv 2511.21689](https://arxiv.org/abs/2511.21689), [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
+| 4 | Split and finish bonuses fade to 0 | [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
 
 ## 🎯 Reward
 
@@ -60,28 +75,28 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 | Planted faults and alarms | Tests whether alarms reach the root seat | [spec](../spec/aurelius.json) |
 | Tasks where splitting is wrong | Sequential work gets worse with more agents: 39% to 70% worse on sequential planning | [arXiv 2512.08296](https://arxiv.org/abs/2512.08296) |
 
-## 📦 Data rule
+## 📦 Hosting rule
 
 | Rule | Why | Source, read 2026-11-22 |
 |---|---|---|
-| Open teachers only, Apache-2.0 or MIT | Licences allow it | [gpt-oss-120b](https://huggingface.co/openai/gpt-oss-120b) (Apache-2.0), [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) (MIT), [GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash) (MIT) |
-| Run teachers on US or EU hosts | Our own rule | our rule |
-| No closed-model outputs | Their terms bar training a competing model on them | [Anthropic](https://www.anthropic.com/legal/commercial-terms), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) |
+| Open weights only | Their licences allow it | model cards above |
+| Pinned US or EU hosts, data collection off | Our own rule | our rule |
+| Never a model maker's own API from China, for example Alibaba Cloud for Qwen or DeepSeek's platform | Our own rule | our rule |
+| No closed model (Claude, GPT, Gemini, Grok) writes or grades training data | Their terms bar training on outputs. Anthropic: none "without prior authorization from Anthropic" | [Anthropic](https://www.anthropic.com/legal/aup), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) |
 
 ## 🧰 Stack
 
 | Part | Choice | Licence | Source, read 2026-11-22 |
 |---|---|---|---|
-| Trainer | TRL AsyncGRPOTrainer v1.18.2, with its own vLLM server for generation | Apache-2.0 | [TRL docs](https://huggingface.co/docs/trl/main/en/async_grpo_trainer) |
-| Environments | OpenEnv | BSD-3-Clause | [GitHub](https://github.com/meta-pytorch/OpenEnv) |
+| Trainer and environments | NVIDIA NeMo RL + NeMo Gym, ships a Qwen3.5-9B GRPO recipe | Apache-2.0 | [GitHub](https://github.com/NVIDIA-NeMo/RL) |
+| Fallback | Hugging Face TRL AsyncGRPOTrainer v1.18.2, with its own vLLM server for generation | Apache-2.0 | [TRL docs](https://huggingface.co/docs/trl/main/en/async_grpo_trainer) |
 | Evals | Inspect AI, runs in CI | MIT | [GitHub](https://github.com/UKGovernmentBEIS/inspect_ai) |
-| Fallback | Tinker, managed LoRA training | service | [Thinking Machines](https://thinkingmachines.ai/tinker/) |
 
 ## 🚀 Release
 
 | Piece | Detail | Source, read 2026-11-22 |
 |---|---|---|
-| Weights | Hugging Face | [Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
+| Weights | Hugging Face, the release-slot winner | [Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
 | Local file | GGUF plus a Modelfile, so `ollama run` works. Ollama does not quantize on import | [Ollama import](https://docs.ollama.com/import) |
 | Used from | OpenCode, Goose, Zed | [OpenCode](https://github.com/anomalyco/opencode), [Goose](https://github.com/aaif-goose/goose), [Zed](https://github.com/zed-industries/zed) |
 
@@ -95,11 +110,13 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 
 ## 💰 Costs
 
-| Rung | Estimate | Note |
+| Item | Estimate | Note |
 |---|---|---|
 | 🥚 Egg | $0 | our estimate, 2026-11-22: simulator on CPU, nothing trained |
 | 🐣 Hatchling | about $100 to $400 | our estimate, 2026-11-22 |
 | 🐲 Drake | priced after Hatchling | Real runs set the price |
 | 🐉 Dragon | priced after Drake | Real runs set the price |
+| Teacher | about $750 | our estimate, 2026-11-22: 20,000 examples on DeepInfra |
+| Judge | about $1,700 | our estimate, 2026-11-22: 100,000 graded runs at API rates |
 
 For scale, one open project reports about 2 hours and $48 to reach GPT-2 grade, a figure its authors state about their own work ([nanochat](https://github.com/karpathy/nanochat), read 2026-11-22). It is a different task and proves nothing about ours.

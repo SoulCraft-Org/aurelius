@@ -45,7 +45,7 @@ flowchart LR
 
 | Phase | What | Needs first | Source, read 2026-11-22 |
 |---|---|---|---|
-| 🐣 Hatchling | First training, on 47 real workers | Egg scores; budget asked first | [spec](../spec/aurelius.json) |
+| 🐣 Hatchling | First task: the bake-off (Inkling 2 Mini, MiMo distill). Then first training, on 47 real workers | Egg scores; budget asked first | [spec](../spec/aurelius.json) |
 | 🚀 Release | Weights on Hugging Face, a GGUF file, `ollama run` | A trained seat | [training](training.md) |
 | 🐲 Drake | 2,209 agents, 47 stand-in teams | Hatchling runs | [spec](../spec/aurelius.json) |
 | 🐉 Dragon | 103,823 agents, 47 stand-in armies | Drake runs | [spec](../spec/aurelius.json) |
