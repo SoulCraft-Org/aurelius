@@ -29,7 +29,7 @@ Source: `spec/aurelius.json`, `rungs` and `tree`, read 2026-11-22.
 | `r2209` | 2,209 | 2 | 48 |
 | `r103823` | 103,823 | 3 | 2,257 |
 
-Each seat has 47 children (`tree.span`).
+A seat has up to 47 children (`tree.span`); `r10` has 10.
 
 ## 📊 The 8 metrics
 
