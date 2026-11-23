@@ -41,7 +41,7 @@ Hatchling's first task is a bake-off. The winner takes the slot.
 | Job | Model | Licence | Note | Source, read 2026-11-22 |
 |---|---|---|---|---|
 | Teacher, writes the warm-up examples | deepseek-ai/DeepSeek-V4.1-Flash | MIT | Terminal-Bench 2.1 90.6 🗣️ | [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) |
-| Teacher fallback | zai-org/GLM-5.3 | not read | | [Hugging Face](https://huggingface.co/zai-org/GLM-5.3) |
+| Teacher fallback | zai-org/GLM-5.3 | Custom licence; silent on outputs; a revenue line applies only to selling it as a service | Terminal-Bench 2.1 88.2 🗣️ | [Hugging Face](https://huggingface.co/zai-org/GLM-5.3), [licence](https://huggingface.co/zai-org/GLM-5.3/blob/main/LICENSE) |
 | Judge, grades practice runs | nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B | OpenMDW-1.1, the only licence found that explicitly frees outputs | A different family from the teacher | [Hugging Face](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [licence](https://openmdw.ai/license/1-1/) |
 
 The judge is calibrated on about 300 hand-ranked run pairs before RL. Its GenRM variant is self-hosted later.
@@ -113,10 +113,12 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 | Item | Estimate | Note |
 |---|---|---|
 | 🥚 Egg | $0 | our estimate, 2026-11-22: simulator on CPU, nothing trained |
-| 🐣 Hatchling | about $100 to $400 | our estimate, 2026-11-22 |
+| 🐣 Hatchling, GPUs | about $100 to $400 | our estimate, 2026-11-22: SFT and GRPO on the 9B student; teacher and judge below are separate |
 | 🐲 Drake | priced after Hatchling | Real runs set the price |
 | 🐉 Dragon | priced after Drake | Real runs set the price |
 | Teacher | about $750 | our estimate, 2026-11-22: 20,000 examples on DeepInfra |
 | Judge | about $1,700 | our estimate, 2026-11-22: 100,000 graded runs at API rates |
+
+Teacher and judge figures are full volumes. Hatchling may need far fewer; its budget is asked before it starts.
 
 For scale, one open project reports about 2 hours and $48 to reach GPT-2 grade, a figure its authors state about their own work ([nanochat](https://github.com/karpathy/nanochat), read 2026-11-22). It is a different task and proves nothing about ours.
