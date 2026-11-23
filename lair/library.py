@@ -1,8 +1,4 @@
-"""The Library: a generated document corpus that real workers search.
-
-Each item gets documents that state its answer; knobs add near-miss distractors,
-superseded documents and filler. All randomness is seeded, one corpus per task, seed and knobs.
-"""
+"""The Library: a seeded document corpus (answers, distractors, superseded notes, filler) that workers search with BM25."""
 
 import heapq
 import math
@@ -21,7 +17,6 @@ STATE = (
 FILLER = (
     "The register is reviewed every quarter by the desk.",
     "Entries are copied from the field sheets without edits.",
-    "Older volumes sit on the second shelf.",
 )
 OLD_CUES = ("superseded", "out of date", "no longer in force")
 OLD = (
@@ -46,8 +41,9 @@ def tokens(text):
 class Library:
     """Documents by id, searched with BM25 over lowercase word tokens."""
 
-    def __init__(self, docs, k1=1.5, b=0.75):
+    def __init__(self, docs, labels=(), k1=1.5, b=0.75):
         self.docs = dict(docs)
+        self._label = dict(labels)  # id -> internal item:kind name; never returned
         self.k1, self.b = k1, b
         self.order = {d: i for i, d in enumerate(self.docs)}
         self.len = {}
@@ -63,7 +59,6 @@ class Library:
         return self.docs[doc_id]
 
     def scores(self, query):
-        """BM25 score of every document that holds a query word."""
         n, out = len(self.docs), {}
         for w in set(tokens(query)):
             post = self.post.get(w, {})
@@ -88,13 +83,11 @@ def hexval(rng, avoid=()):
 
 
 def off_by_one(rng, v):
-    """The answer with one digit changed: wrong, but easy to miss."""
     i = rng.randrange(len(v))
     return v[:i] + rng.choice([c for c in "0123456789abcdef" if c != v[i]]) + v[i + 1:]
 
 
 def sub(seed, name, kind):
-    """One generator per item and kind, so a knob never shifts another kind's draws."""
     return random.Random(f"{seed}:{name}:{kind}")
 
 
@@ -113,10 +106,13 @@ def make_library(task, seed, distractors=0, conflicts=0.0, noise=0.0):
         r = sub(seed, k, "near")
         for j in range(distractors):
             texts[f"{k}:near{j}"] = r.choice(STATE).format(key=f"{k}-v{j}", v=hexval(r, (it.answer,)))
-    docs = {}
+    docs, labels = {}, {}
     for d in sorted(texts, key=lambda d: sub(seed, d, "rank").random()):
         r = sub(seed, d, "noise")
         parts = [texts[d]] + [r.choice(FILLER) for _ in range(int(noise) + (r.random() < noise % 1))]
         r.shuffle(parts)
-        docs[d] = " ".join(parts)
-    return Library(docs)
+        r = sub(seed, d, "id")
+        while (i := "d" + format(r.getrandbits(40), "x")) in docs:
+            pass
+        docs[i], labels[i] = " ".join(parts), d
+    return Library(docs, labels)
