@@ -2,13 +2,19 @@
 
 import json
 import math
+import os
 
 TEXT = ("run_id", "lane", "gpu")
 NUMBERS = ("seconds", "usd_per_hour", "credits_usd", "billed_usd")
 
 
 def _number(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and x >= 0
+    if not isinstance(x, (int, float)) or isinstance(x, bool):
+        return False
+    try:
+        return math.isfinite(x) and x >= 0
+    except OverflowError:  # an int too big for a float
+        return False
 
 
 def row(run_id, lane, gpu, seconds, usd_per_hour, credits_usd, billed_usd):
@@ -23,8 +29,16 @@ def row(run_id, lane, gpu, seconds, usd_per_hour, credits_usd, billed_usd):
 def append(path, entry):
     """Write one validated row as one JSON line; a missing or extra field is refused."""
     entry = row(**entry)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, sort_keys=True) + "\n")
+    with open(path, "a+b") as f:  # binary, so the last byte is read as it is
+        f.seek(0, os.SEEK_END)
+        if f.tell():
+            f.seek(-1, os.SEEK_END)
+            lead = b"" if f.read(1) == b"\n" else b"\n"  # a file that ends mid-line gets its line closed first
+        else:
+            lead = b""
+        f.write(lead + (json.dumps(entry, sort_keys=True) + "\n").encode())
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def unbilled(rows):

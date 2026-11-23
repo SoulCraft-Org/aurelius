@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from ladder import spend
 
@@ -34,6 +35,24 @@ class TestSpend(unittest.TestCase):
                 spend.append(path, {"run_id": "x"})  # a field short: nothing is written
             with open(path, encoding="utf-8") as f:
                 self.assertEqual(len(f.read().splitlines()), 2)
+
+    def test_append_closes_a_line_left_open_and_syncs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "spend.jsonl")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write('{"torn": ')  # a crash mid-write: no newline at the end
+            with mock.patch("os.fsync") as fsync:
+                spend.append(path, spend.row(*ARGS))
+            fsync.assert_called_once()
+            with open(path, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+            self.assertEqual((lines[0], json.loads(lines[1])), ('{"torn": ', spend.row(*ARGS)))
+
+    def test_a_number_too_big_for_a_float_is_invalid_not_a_crash(self):
+        args = list(ARGS)
+        args[3] = 10**400
+        with self.assertRaises(ValueError):
+            spend.row(*args)
 
     def test_unbilled_catches_a_billed_row(self):
         free, paid = spend.row(*ARGS), spend.row(*ARGS[:6], 0.01)
