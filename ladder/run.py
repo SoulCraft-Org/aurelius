@@ -1,5 +1,7 @@
 """The Ladder runner: one run of a seat on a task, and the score row over seeds."""
 
+import argparse
+import json
 import os
 import random
 from datetime import datetime, timezone
@@ -7,11 +9,11 @@ from functools import partial
 
 from ladder.metrics import compute
 from lair import load_spec
-from lair.baselines import PASS_GRADE, run_baseline
+from lair.baselines import NAMES, PASS_GRADE, run_baseline
 from lair.ledger import Ledger, ResumeMismatch, resume
 from lair.seat import RuleSeat
 from lair.sim import Sim
-from lair.tasks import critical_path, grade, make_task
+from lair.tasks import KINDS, critical_path, grade, make_task
 from lair.workers import CHECK_COST, check, do_item, worker_types
 
 
@@ -75,23 +77,31 @@ class _Leaf:
     def report(self):
         done = {k: r["facts"][0] for k, r in self.replies.items() if r["status"] == "completed"}
         self.facts = {k: f for k, f in done.items() if self.checked.get(k) is not False}
-        self.alarms = [a for r in self.replies.values() for a in r["alarms"]]
+        # an alarm travels only with the fact it came with, so a dropped fact takes its alarm along
+        self.alarms = [a for k, r in self.replies.items() if k in self.facts for a in r["alarms"]]
         self.sim.record("report", tier=1, facts_in=len(done), wrong_in=_wrong(self.items, done.values()),
                         facts_out=len(self.facts), wrong_out=_wrong(self.items, self.facts.values()))
 
 
-def _same_after_kill(make, full):
-    """Kill a copy of the leaf halfway, resume it by replay; does it end as the full run did?"""
+def _kill_and_resume(make, full):
+    """Stop a copy of the leaf partway, save its ledger, resume by replay: (saved, resumed or None)."""
     def start():
         leaf = make()
         return leaf.sim, leaf.led
 
-    sim, saved = start()
-    sim.run(until=full.sim.now / 2)
+    sim, led = start()
+    sim.run(until=full.sim.now / 2)  # the kill: events after this stay queued and never run
+    saved = Ledger(led.entries)
     try:
-        return resume(start, saved).entries == full.led.entries
+        return saved, resume(start, saved)
     except ResumeMismatch:
-        return False
+        return saved, None
+
+
+def _same_after_kill(make, full):
+    """True only for a real kill (saved is non-empty and shorter) whose resume ends as the full run did."""
+    saved, resumed = _kill_and_resume(make, full)
+    return 0 < len(saved.entries) < len(full.led.entries) and resumed is not None and resumed.entries == full.led.entries
 
 
 def _lift(top, task, spec, by_key, tier, kids, pot):
@@ -108,8 +118,9 @@ def _lift(top, task, spec, by_key, tier, kids, pot):
         top.record("check", key=key, tier=tier, verdict=ok)
         if not ok:
             del facts[key]
+    alarms = [a for kid in kids for a in kid[1] if a in facts]  # a dropped fact's alarm stops here
     top.record("report", tier=tier, **row, facts_out=len(facts), wrong_out=_wrong(by_key, facts.values()))
-    return facts, [a for kid in kids for a in kid[1]]
+    return facts, alarms
 
 
 def _rule(task, spec, rung_id, seed, budget):
@@ -145,7 +156,11 @@ def _rule(task, spec, rung_id, seed, budget):
 
 
 def run_once(rung_id, seat, spec, seed, kind="table", budget=None):
-    """One run log. Every seat, rule or baseline, gets 5 credits per agent: a call and a check."""
+    """One run log. Every seat, rule or baseline, gets 5 credits per agent: a call and a check.
+
+    In sim, resume_rate is a determinism check: a resume replays from the seed, so it matches
+    unless the run is not deterministic. It says nothing about real workers until they are live.
+    """
     agents = _rung(spec, rung_id)["agents"]
     task, budget = make_task(seed, agents, kind), 5 * agents if budget is None else budget
     if seat == "rule":
@@ -158,3 +173,22 @@ def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
             "workers": "sim", "seed": list(seeds), "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind) for s in seeds])}
+
+
+def parse_args(argv=None):
+    """The command line: which rung, which seat, how many seeds (0 to N-1)."""
+    p = argparse.ArgumentParser(prog="python3 -m ladder.run", description="Print a seat's score row as JSON.")
+    p.add_argument("--rung", required=True, choices=[r["id"] for r in load_spec()["rungs"]])
+    p.add_argument("--seat", required=True, choices=["rule", *NAMES])
+    p.add_argument("--seeds", type=int, default=3, help="number of seeds, run as 0 to N-1")
+    p.add_argument("--kind", choices=KINDS, default="table")
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    print(json.dumps(score(args.rung, args.seat, tuple(range(args.seeds)), args.kind), indent=2))
+
+
+if __name__ == "__main__":
+    main()
