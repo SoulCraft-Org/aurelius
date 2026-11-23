@@ -7,7 +7,8 @@
    outside link. No `url()` outside the file in any attribute (style, fill, filter, mask), and no animated
    href (a SMIL animate or set that targets href).
 
-`--self-test` runs built-in bad and good samples through the SVG check.
+`--self-test` runs built-in bad and good samples through the SVG check, and malformed copies
+of the spec through the spec check. A spec with the wrong shape is a finding, never a traceback.
 Exit 0 when clean, 1 on any finding or failed self-test.
 """
 import json
@@ -37,23 +38,60 @@ def check_spec(path, out):
         return
     if path.name != "aurelius.json":
         return
+    spec_findings(name, spec, out)
+
+
+def _whole(value):
+    """True for a plain int above zero that is not a bool: 0 and negatives would divide by zero or break the tree math."""
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def spec_findings(name, spec, out):
+    """Append one finding per shape problem in a parsed spec. Never raises on a wrong shape."""
+    if not isinstance(spec, dict):
+        out.append(f"{name}: the spec must be a JSON object, not {type(spec).__name__}")
+        return
     missing = NEEDED - spec.keys()
     if missing:
         out.append(f"{name}: missing {sorted(missing)}")
         return
     counts = {"actions": 5, "order": 5, "metrics": 8}
     for key, want in counts.items():
-        if len(spec[key]) != want:
+        if not isinstance(spec[key], list):
+            out.append(f"{name}: {key} must be a list")
+        elif len(spec[key]) != want:
             out.append(f"{name}: {key} has {len(spec[key])}, want {want}")
-    if sum(1 for m in spec["metrics"] if m.get("headline")) != 1:
-        out.append(f"{name}: metrics need exactly one headline")
+    if isinstance(spec["metrics"], list):
+        bad = [i for i, m in enumerate(spec["metrics"]) if not isinstance(m, dict)]
+        for i in bad:
+            out.append(f"{name}: metrics[{i}] must be an object")
+        if sum(1 for m in spec["metrics"] if isinstance(m, dict) and m.get("headline")) != 1:
+            out.append(f"{name}: metrics need exactly one headline")
     tree = spec["tree"]
+    if not isinstance(tree, dict):
+        out.append(f"{name}: tree must be an object")
+        return
+    gaps = [k for k in ("span", "tiers", "workers", "seats") if not _whole(tree.get(k))]
+    if gaps:
+        out.append(f"{name}: tree needs positive whole numbers for {gaps}")
+        return
     span, tiers = tree["span"], tree["tiers"]
     if span ** tiers != tree["workers"] or seats(span, tiers) != tree["seats"]:
         out.append(f"{name}: tree breaks the math ({span}^{tiers})")
-    for rung in spec["rungs"]:
+    if not isinstance(spec["rungs"], list):
+        out.append(f"{name}: rungs must be a list")
+        return
+    for i, rung in enumerate(spec["rungs"]):
+        if not isinstance(rung, dict):
+            out.append(f"{name}: rungs[{i}] must be an object")
+            continue
+        label = rung.get("id", f"rungs[{i}]")
+        gaps = [k for k in ("agents", "tiers", "seats") if not _whole(rung.get(k))]
+        if gaps:
+            out.append(f"{name}: rung {label} needs positive whole numbers for {gaps}")
+            continue
         if rung["seats"] != seats(span, rung["tiers"]) or rung["agents"] > span ** rung["tiers"]:
-            out.append(f"{name}: rung {rung['id']} breaks the tree math")
+            out.append(f"{name}: rung {label} breaks the tree math")
 
 
 def check_svg(path, out):
@@ -102,6 +140,39 @@ SAMPLES = [  # (label, svg, should be refused)
 ]
 
 
+def spec_samples():
+    """(label, parsed spec, should be refused): a small good spec, then malformed copies of it (issue #104)."""
+    good = {key: [] for key in NEEDED}
+    good.update({
+        "tree": {"span": 47, "tiers": 3, "workers": 103823, "seats": 2257},
+        "actions": [{}] * 5, "order": [{}] * 5,
+        "metrics": [{"id": "headline", "headline": True}] + [{"id": f"m{i}"} for i in range(7)],
+        "dial": {}, "score_row": {},
+        "rungs": [{"id": "r10", "agents": 10, "tiers": 1, "seats": 1}, {"id": "r2209", "agents": 2209, "tiers": 2, "seats": 48}],
+    })
+
+    def broken(change):
+        spec = json.loads(json.dumps(good))
+        change(spec)
+        return spec
+
+    return [
+        ("spec: a JSON list", [good], True),
+        ("spec: a rung without seats", broken(lambda s: s["rungs"][0].pop("seats")), True),
+        ("spec: a rung without agents", broken(lambda s: s["rungs"][0].pop("agents")), True),
+        ("spec: a rung without tiers", broken(lambda s: s["rungs"][0].pop("tiers")), True),
+        ("spec: a rung that is not an object", broken(lambda s: s["rungs"].__setitem__(0, "r10")), True),
+        ("spec: a tree without span", broken(lambda s: s["tree"].pop("span")), True),
+        ("spec: a tree with span 0", broken(lambda s: s["tree"].__setitem__("span", 0)), True),
+        ("spec: a tree with tiers -1", broken(lambda s: s["tree"].__setitem__("tiers", -1)), True),
+        ("spec: a rung with 0 tiers", broken(lambda s: s["rungs"][0].__setitem__("tiers", 0)), True),
+        ("spec: a tree that is a list", broken(lambda s: s.__setitem__("tree", [47, 3])), True),
+        ("spec: a metric that is not an object", broken(lambda s: s["metrics"].__setitem__(0, "verified_success")), True),
+        ("spec: metrics that are an object", broken(lambda s: s.__setitem__("metrics", {})), True),
+        ("spec: good", good, False),
+    ]
+
+
 def self_test():
     bad = 0
     for label, svg, refused in SAMPLES:
@@ -110,6 +181,15 @@ def self_test():
         ok = bool(found) == refused
         bad += not ok
         print(f"{'PASS' if ok else 'FAIL'} {label}")
+    for label, spec, refused in spec_samples():
+        found = []
+        try:
+            spec_findings(label, spec, found)
+            ok = bool(found) == refused
+        except Exception as err:  # a traceback is the bug this sample guards against
+            found, ok = [f"raised {type(err).__name__}"], False
+        bad += not ok
+        print(f"{'PASS' if ok else 'FAIL'} {found[0] if found else label}")
     print(f"check_files self-test: {bad} failure(s)")
     return 1 if bad else 0
 

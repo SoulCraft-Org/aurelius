@@ -48,6 +48,10 @@
      ]
     },
     {
+     "doc": "docs/plans/*.md",
+     "area": []
+    },
+    {
      "doc": "**",
      "area": [
       "{dir}/"
