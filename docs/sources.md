@@ -73,9 +73,9 @@ Open a fold to see its rows.
 |---|---|---|---|
 | Base model to iterate | 262k context | [Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) | Apache-2.0 |
 | Base model to release | 27.8B parameters | [Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) | Apache-2.0 |
-| Hatchling bake-off, release slot | | [Inkling 2 Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini) | Apache-2.0 plus a use policy that binds derivatives |
+| Hatchling bake-off, release slot | | [Inkling 2 Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini) | Apache-2.0; links a separate Acceptable Use Policy, read before use |
 | Hatchling bake-off, iterate slot; same architecture as Qwen3.5-9B | | [MiMo-V2.6-Distill-Qwen-9B](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B) | MIT |
-| Teacher for warm-up examples; GLM-5.3 is the fallback | Terminal-Bench 2.1 90.6 🗣️ | [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash), [GLM-5.3](https://huggingface.co/zai-org/GLM-5.3) | MIT, GLM-5.3 not read |
+| Teacher for warm-up examples; GLM-5.3 is the fallback | Terminal-Bench 2.1 90.6 🗣️ | [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash), [GLM-5.3](https://huggingface.co/zai-org/GLM-5.3) | MIT, GLM-5.3 custom licence |
 | Judge for practice runs: a different family from the teacher, outputs explicitly free | | [Nemotron 3 Ultra](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [OpenMDW-1.1](https://openmdw.ai/license/1-1/) | OpenMDW-1.1 |
 | GRPO trainer and Gym-style environments; ships a Qwen3.5-9B recipe | | [NeMo RL](https://github.com/NVIDIA-NeMo/RL) | Apache-2.0 |
 | GRPO with tools, the fallback; generation runs on a separate vLLM server | v1.18.2 | [TRL AsyncGRPOTrainer](https://huggingface.co/docs/trl/main/en/async_grpo_trainer) | Apache-2.0 |

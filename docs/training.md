@@ -32,7 +32,7 @@ Hatchling's first task is a bake-off. The winner takes the slot.
 |---|---|---|---|
 | Iterate | Qwen/Qwen3.5-9B, 262k context | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.5-9B) |
 | Release | Qwen/Qwen3.8-27B, 27.8B parameters | Apache-2.0 | [Hugging Face](https://huggingface.co/Qwen/Qwen3.8-27B) |
-| Bake-off, release slot | thinkingmachines/Inkling-2-Mini | Apache-2.0 plus a use policy that binds derivatives | [Hugging Face](https://huggingface.co/thinkingmachines/Inkling-2-Mini) |
+| Bake-off, release slot | thinkingmachines/Inkling-2-Mini | Apache-2.0; links a separate Acceptable Use Policy, read before use | [Hugging Face](https://huggingface.co/thinkingmachines/Inkling-2-Mini) |
 | Bake-off, iterate slot | XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B, same architecture as Qwen3.5-9B | MIT | [Hugging Face](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B) |
 | ❌ Never | nvidia/Nemotron-Orchestrator-8B | NVIDIA License, non-commercial research only | [arXiv 2511.21689](https://arxiv.org/abs/2511.21689) |
 
@@ -42,7 +42,7 @@ Hatchling's first task is a bake-off. The winner takes the slot.
 |---|---|---|---|---|
 | Teacher, writes the warm-up examples | deepseek-ai/DeepSeek-V4.1-Flash | MIT | Terminal-Bench 2.1 90.6 🗣️ | [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) |
 | Teacher fallback | zai-org/GLM-5.3 | Custom licence; silent on outputs; a revenue line applies only to selling it as a service | Terminal-Bench 2.1 88.2 🗣️ | [Hugging Face](https://huggingface.co/zai-org/GLM-5.3), [licence](https://huggingface.co/zai-org/GLM-5.3/blob/main/LICENSE) |
-| Judge, grades practice runs | nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B | OpenMDW-1.1, the only licence found that explicitly frees outputs | A different family from the teacher | [Hugging Face](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [licence](https://openmdw.ai/license/1-1/) |
+| Judge, grades practice runs | nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B | OpenMDW-1.1 places no restrictions on outputs | A different family from the teacher | [Hugging Face](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [licence](https://openmdw.ai/license/1-1/) |
 
 The judge is calibrated on about 300 hand-ranked run pairs before RL. Its GenRM variant is self-hosted later.
 
@@ -82,7 +82,7 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 | Open weights only | Their licences allow it | model cards above |
 | Pinned US or EU hosts, data collection off | Our own rule | our rule |
 | Never a model maker's own API from China, for example Alibaba Cloud for Qwen or DeepSeek's platform | Our own rule | our rule |
-| No closed model (Claude, GPT, Gemini, Grok) writes or grades training data | Their terms bar training on outputs. Anthropic: none "without prior authorization from Anthropic" | [Anthropic](https://www.anthropic.com/legal/aup), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) |
+| No closed model (Claude, GPT, Gemini, Grok) writes or grades training data | Their terms bar training on outputs. Anthropic's Usage Policy lists it as platform abuse unless Anthropic approves it in advance | [Anthropic](https://www.anthropic.com/legal/aup), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) |
 
 ## 🧰 Stack
 
