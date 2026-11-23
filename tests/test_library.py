@@ -53,6 +53,7 @@ class LibraryTest(unittest.TestCase):
     def test_no_one_word_finds_most_corrections(self):
         lib = make_library(make_task(6, 200, fault_rate=0.3), 8)
         fixes = {d for d, t in lib.docs.items() if len(VALUE.findall(t)) == 2}
+        self.assertGreater(len(fixes), 30)  # enough corrections that the cap below means something
         for w in {w for d in fixes for w in tokens(lib.docs[d])}:
             hits = {d for d, _ in lib.search(w, len(lib.docs))} & fixes
             self.assertLessEqual(len(hits), len(fixes) / 2, w)
