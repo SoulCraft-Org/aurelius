@@ -3,11 +3,12 @@
 import http.client
 import json
 import os
+import tempfile
 import unittest
 import urllib.error
 from unittest import mock
 
-from ladder.models import ModelSeat
+from ladder.models import ModelSeat, view
 from lair import load_spec
 
 SPEC, KEY = load_spec(), "sk-or-v1-NOT-A-REAL-KEY"
@@ -64,6 +65,20 @@ class TestModelSeat(unittest.TestCase):
         with reply(again, CHECK):
             seat = ModelSeat(SPEC)
             self.assertEqual((names(seat.decide(failed)), seat.format_errors), (ENDS, 1))
+
+    def test_the_view_shows_each_reply_status_and_alarms_and_no_facts(self):
+        obs = {**OBS, "replies": {"k0": {"status": "completed", "facts": [{"value": 7}], "alarms": ["k0"], "spent": {}}, "k1": {"status": "failed"}}}
+        self.assertEqual(view(obs)["replies"], {"k0": {"status": "completed", "alarms": ["k0"]}, "k1": {"status": "failed", "alarms": []}})
+        with reply(MAP) as urlopen:
+            ModelSeat(SPEC).decide(obs)
+        self.assertNotIn("value", urlopen.call_args.args[0].data.decode())
+
+    def test_a_prompt_file_replaces_the_system_text_and_is_what_the_stamp_hashes(self):
+        with tempfile.NamedTemporaryFile("w") as f, mock.patch.dict(os.environ, {"SEAT_PROMPT_FILE": f.name}):
+            f.write("Only {dial}.\n")
+            f.flush()
+            seat = ModelSeat(SPEC)
+        self.assertEqual((seat.system, seat.prompt), (f"Only {json.dumps(SPEC['dial'])}.",) * 2)
 
     def test_the_cache_is_free_and_a_looping_seat_ends(self):
         seat = ModelSeat(SPEC, max_calls=1)
