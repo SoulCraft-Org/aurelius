@@ -23,7 +23,7 @@ class Task:
 
     id: str
     kind: str
-    items: tuple
+    items: tuple[Item, ...]
 
     @property
     def can_split(self):
@@ -46,13 +46,13 @@ def make_task(seed, size, kind="table", fault_rate=0.05, alarm_rate=0.01):
         answer = f"{rng.getrandbits(32):08x}"
         items.append(Item(key, answer, fault, alarm, prev if kind == "no_split" else None))
         prev = key
-    return Task(f"{kind}-{seed}-{size}", kind, tuple(items))
+    return Task(f"{kind}-{seed}-{size}-{fault_rate}-{alarm_rate}", kind, tuple(items))
 
 
 def grade(task, answers):
     """Share of items whose answer matches, from 0 to 1."""
     right = sum(1 for it in task.items if answers.get(it.key) == it.answer)
-    return right / len(task.items)
+    return right / len(task.items) if task.items else 0.0
 
 
 def critical_path(task):
@@ -60,4 +60,4 @@ def critical_path(task):
     depth = {}
     for it in task.items:
         depth[it.key] = 1 + (depth[it.after] if it.after is not None else 0)
-    return max(depth.values())
+    return max(depth.values(), default=0)

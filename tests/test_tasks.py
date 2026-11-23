@@ -58,6 +58,15 @@ class TasksTest(unittest.TestCase):
         half[task.items[9].key] = "wrong"
         self.assertEqual(grade(task, half), 0.5)
 
+    def test_id_names_the_rates(self):
+        self.assertNotEqual(make_task(1, 9).id, make_task(1, 9, fault_rate=0.5).id)
+        self.assertNotEqual(make_task(1, 9).id, make_task(1, 9, alarm_rate=0.5).id)
+
+    def test_empty_task(self):
+        empty = Task("t", "table", ())
+        self.assertEqual(grade(empty, {}), 0.0)
+        self.assertEqual(critical_path(empty), 0)
+
     def test_frozen(self):
         item = Item("k0", "a", False, False, None)
         with self.assertRaises(AttributeError):
