@@ -36,22 +36,35 @@ def _wrong(items, facts):
 
 class _Leaf:
     """A tier-1 seat: the RuleSeat loop on its own Sim, whose log is its ledger."""
-    def __init__(self, spec, task, items, seed, left, seat=None, world=None):
-        """The seat reads spec; the workers and the check run in world (default spec)."""
+    def __init__(self, spec, task, items, seed, left, seat=None, world=None, scheduled=True):
+        """The seat reads spec; the workers and the check run in world (default spec).
+
+        A leaf that is not scheduled never calls step: the caller drives observe() and apply().
+        """
         self.sim, self.led, self.spec, self.task = Sim(seed), Ledger(), world or spec, task
         self.led.entries = self.sim.log  # the ledger is the log, so replay checks every row
         self.items, self.left, self.types = {i.key: i for i in items}, left, worker_types(self.spec)
         self.seat, self.pending, self.sent = seat or RuleSeat(spec), list(self.items), {}
         self.replies, self.checked, self.tries, self.rounds = {}, {}, {}, 0
-        self.sim.at(0, self.step)
+        if scheduled:
+            self.sim.at(0, self.step)
 
     def step(self, sim):
         """Ask the seat what to do, do it, and come back when the replies are in."""
+        delay = self.apply(self.seat.decide(self.observe()), sim)
+        if delay is not None:
+            sim.at(delay, self.step)
+
+    def observe(self):
+        """What the seat sees now: live views of the leaf's state, not copies."""
+        return {"pending": self.pending, "replies": self.replies, "checked": self.checked,
+                "tries": self.tries, "types": self.sent, "budget_left": {"credits": self.left}}
+
+    def apply(self, actions, sim):
+        """Do the actions. Return the delay until the replies are in, or None once the seat stopped or reported."""
         self.rounds += 1
-        obs = {"pending": self.pending, "replies": self.replies, "checked": self.checked,
-               "tries": self.tries, "types": self.sent, "budget_left": {"credits": self.left}}
         secs = []
-        for act in self.seat.decide(obs):
+        for act in actions:
             keys = act.get("children", [])
             if act["name"] == "map":
                 wtype = self.types[act["worker_type"]]
@@ -76,8 +89,8 @@ class _Leaf:
                     sim.record("spend", credits=CHECK_COST, seconds=0)
                     sim.record("check", key=key, tier=1, verdict=self.checked[key])
             elif act["name"] in ("stop", "report"):  # stop ends the seat with what it has
-                return self.report()
-        sim.at(max(secs, default=0) if self.task.can_split else sum(secs), self.step)
+                return self.report()  # None: the seat is done
+        return max(secs, default=0) if self.task.can_split else sum(secs)
 
     def report(self):
         done = {k: r["facts"][0] for k, r in self.replies.items() if r["status"] == "completed"}
