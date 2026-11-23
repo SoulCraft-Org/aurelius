@@ -1,5 +1,6 @@
 """The model seat, with urlopen patched: no test here touches the network."""
 
+import http.client
 import json
 import os
 import unittest
@@ -141,6 +142,25 @@ class TestAnyEndpoint(unittest.TestCase):  # #65: SEAT_URL, SEAT_MODEL, SEAT_KEY
         with mock.patch.dict(os.environ, {"SEAT_KEY_ENV": "NO_SUCH_KEY"}), self.assertRaises(RuntimeError):
             ModelSeat(SPEC).decide(OBS)  # OpenRouter without its key stays loud
 
+    def test_the_openrouter_key_never_goes_to_another_host(self):
+        with mock.patch.dict(os.environ, self.VLLM):  # OPENROUTER_API_KEY is set, SEAT_KEY_ENV is not
+            seat = ModelSeat(SPEC)
+            req, _ = self.send(seat)
+        self.assertEqual((seat.key_var, req.get_header("Authorization")), ("", None))
+
+    def test_the_url_scheme_is_https_or_http_for_a_server_that_is_not_openrouter(self):
+        for url in ("file:///etc/passwd", "ftp://gpu.example/v1", "gpu.example/v1", "http://openrouter.ai/api/v1/chat/completions"):
+            with self.subTest(url), mock.patch.dict(os.environ, {"SEAT_URL": url}), self.assertRaises(ValueError):
+                ModelSeat(SPEC)
+        with mock.patch.dict(os.environ, {"SEAT_URL": "https://gpu.example/v1/chat/completions"}):
+            self.assertEqual(ModelSeat(SPEC).stats()["endpoint"], "custom")
+
+    def test_an_error_nothing_catches_still_bills_in_full(self):
+        with mock.patch("urllib.request.urlopen", side_effect=http.client.IncompleteRead(b"")), self.assertRaises(http.client.IncompleteRead):
+            seat = ModelSeat(SPEC)
+            seat.decide(OBS)
+        self.assertGreater(seat.spent_usd, 1024 * 0.25 / 1e6)
+
     def test_the_lock_requires_a_tool_call_and_enumerates_the_keys_that_may_be_sent(self):
         obs = {**OBS, "pending": ["k1"], "checked": {"k2": False},
                "replies": {"k0": {"status": "completed"}, "k2": {"status": "completed"}, "k3": {"status": "failed"}}}
@@ -169,6 +189,6 @@ class TestAnyEndpoint(unittest.TestCase):  # #65: SEAT_URL, SEAT_MODEL, SEAT_KEY
         self.assertEqual(ModelSeat(SPEC, cap_usd=9).cap_usd, 1.0)  # a token-billed API stays at $1
 
     def test_a_bad_gpu_price_fails_closed(self):
-        for bad in ("nan", "-1"):
+        for bad in ("nan", "-1", "inf"):
             with self.subTest(bad), mock.patch.dict(os.environ, {"SEAT_GPU_USD_H": bad}), self.assertRaises(ValueError):
                 ModelSeat(SPEC)

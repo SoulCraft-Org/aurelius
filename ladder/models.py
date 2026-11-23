@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import math
 import os
 import time
 import urllib.parse
@@ -33,12 +34,17 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         # MODEL_CAP_USD lets a workflow split one total cap across rungs; it can only lower the $1 ceiling.
         # SEAT_URL, SEAT_MODEL, SEAT_KEY_ENV, SEAT_GPU_USD_H and SEAT_LOCK are the #65 overrides; unset, nothing changes.
         get = os.environ.get
-        self.url, self.model, self.key_var = get("SEAT_URL") or URL, get("SEAT_MODEL") or MODEL, get("SEAT_KEY_ENV") or "OPENROUTER_API_KEY"
-        host = urllib.parse.urlparse(self.url).hostname or ""
+        self.url, self.model = get("SEAT_URL") or URL, get("SEAT_MODEL") or MODEL
+        parts = urllib.parse.urlparse(self.url)
+        host = parts.hostname or ""
         self.openrouter, self.lock = host == "openrouter.ai" or host.endswith(".openrouter.ai"), get("SEAT_LOCK") == "1"
+        if parts.scheme != "https" and not (parts.scheme == "http" and host and not self.openrouter):  # no file:, and no plain http to OpenRouter
+            raise ValueError("SEAT_URL must be https, or http for a server that is not OpenRouter")
+        # the OpenRouter key goes to OpenRouter only: another host gets the key SEAT_KEY_ENV names, or none
+        self.key_var = get("SEAT_KEY_ENV") or ("OPENROUTER_API_KEY" if self.openrouter else "")
         self.gpu_usd_h = float(get("SEAT_GPU_USD_H")) if get("SEAT_GPU_USD_H") else None  # set: spend is wall time x this price
         cap = cap_usd if cap_usd is not None else float(get("MODEL_CAP_USD", "1.0"))
-        if not cap >= 0 or not (self.gpu_usd_h is None or self.gpu_usd_h >= 0):  # also rejects nan, which would never trip the cap
+        if not cap >= 0 or not (self.gpu_usd_h is None or math.isfinite(self.gpu_usd_h) and self.gpu_usd_h >= 0):  # also rejects nan, which would never trip the cap
             raise ValueError("cap and GPU price must be numbers, 0 or more")
         self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0 if self.gpu_usd_h is None else 5.0), max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
@@ -81,7 +87,7 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         head = {"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})}  # a self-hosted server may need none
         req = urllib.request.Request(self.url, body.encode(), head)
         self.calls += 1
-        start = time.monotonic()
+        start, data, use = time.monotonic(), None, None
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 data = json.load(r)
@@ -89,15 +95,16 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         except (OSError, ValueError, AttributeError) as err:
             self._note(f"http_{err.code}" if isinstance(getattr(err, "code", None), int) else type(err).__name__)
             data = use = None
+        finally:  # any exit bills in full, even one nothing here catches (http.client.IncompleteRead)
+            use = use if isinstance(use, dict) else {}
+            num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
+            if self.gpu_usd_h is not None:  # time-billed: the GPU is rented by the hour, so a failed call costs its wall time too
+                self.spent_usd += (time.monotonic() - start) * self.gpu_usd_h / 3600
+            else:
+                self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
         if isinstance(data, dict) and isinstance(data.get("error"), dict):
             code = data["error"].get("code")  # only an integer code: provider text never reaches a public row
             self._note(f"api_{code}" if isinstance(code, int) and not isinstance(code, bool) else "api_error")
-        use = use if isinstance(use, dict) else {}
-        num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
-        if self.gpu_usd_h is not None:  # time-billed: the GPU is rented by the hour, so a failed call costs its wall time too
-            self.spent_usd += (time.monotonic() - start) * self.gpu_usd_h / 3600
-        else:
-            self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
         return data
 
     def _locked(self, obs):  # a copy of the static schemas with this call's enum on children: only keys that may be sent
