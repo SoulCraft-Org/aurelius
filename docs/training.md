@@ -33,8 +33,8 @@ Cheapest move first. A move stays only if its gain on unseen seeds is above 0.
 | 1 | 📏 Measure the untrained seat | the Ladder | No number, no claim | [spec](../spec/aurelius.json) |
 | 2 | 🔒 Lock tool calls to the 5 actions | vLLM structured output | No gain figure read yet. Kept only if format errors show up in step 26 | [vLLM](https://docs.vllm.ai/en/latest/features/structured_outputs/) |
 | 3 | 🧹 Sweep the rule seat's two knobs | stdlib grid | A stronger baseline, and free lessons | our plan |
-| 4 | ✍️ Evolve the seat prompt in the Lair | GEPA | On its paper's tasks, about 6% above GRPO. Up to 35x fewer rollouts 🗣️ | [arXiv 2507.19457](https://arxiv.org/abs/2507.19457) |
-| 5 | 🎓 Tune: LoRA on the best runs, rung 10 then 47 | PEFT | LoRA can match full fine-tuning on small and medium sets. RL too | [Thinking Machines](https://thinkingmachines.ai/blog/lora/) |
+| 4 | ✍️ Evolve the seat prompt in the Lair | GEPA | On its paper's tasks, about 6% above GRPO. Up to 35x fewer rollouts | [arXiv 2507.19457](https://arxiv.org/abs/2507.19457) |
+| 5 | 🎓 Tune: LoRA on the best runs, rung 10 then 47 | PEFT | LoRA matched full fine-tuning on small and medium SFT sets. Its RL tests were on reasoning, not agent tool use. | [Thinking Machines](https://thinkingmachines.ai/blog/lora/) |
 | 6 | 🏋️ Reinforce: GRPO in the fitted Lair | HF TRL, 1 GPU | Only if move 5 stalls | [TRL](https://huggingface.co/docs/trl/main/en/grpo_trainer) |
 | 7 | 🧪 Blend the best adapters | mergekit | Thin for agents: only with 2 or more kept adapters | [arXiv 2403.13257](https://arxiv.org/abs/2403.13257) |
 | 8 | ⬆️ Upgrade the base: same recipe on the 27B | moves 1 to 7 | Must beat the 9B on unseen seeds | [Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
@@ -66,7 +66,7 @@ Cheapest move first. A move stays only if its gain on unseen seeds is above 0.
 |---|---|---|
 | 1 | Prompts: moves 3 and 4 | Change a mind at the shallowest depth that works, and train last ([issue #60](https://github.com/SoulCraft-Org/aurelius/issues/60), ask 3) |
 | 2 | Lessons: rule-seat transcripts and the student's best-of-N runs, kept by Lair score | Open-weight sources only |
-| 3 | LoRA: move 5 | One GPU is enough for rung 47 |
+| 3 | LoRA: move 5 | One GPU is the plan for rung 47; not measured yet. |
 | 4 | GRPO: move 6, only if LoRA stalls | The costliest move |
 
 ## 🧠 Students
@@ -142,4 +142,4 @@ These are credit, not money billed. Our goal: billed reads $0.00 after every run
 
 ## 🚀 Release
 
-Weights on Hugging Face, the release-slot winner. A GGUF plus a Modelfile, so `ollama run` works ([Ollama import](https://docs.ollama.com/import)). Used from [OpenCode](https://github.com/anomalyco/opencode), [Goose](https://github.com/aaif-goose/goose) and [Zed](https://github.com/zed-industries/zed). Ship the smallest file within 2 points.
+Weights on Hugging Face, the release-slot winner. A GGUF plus a Modelfile, so `ollama run` works ([Ollama import](https://docs.ollama.com/import)). Used from [OpenCode](https://github.com/anomalyco/opencode), [Goose](https://github.com/aaif-goose/goose) and [Zed](https://github.com/zed-industries/zed). Ship the smallest file within 2 points of the release file on val seeds.
