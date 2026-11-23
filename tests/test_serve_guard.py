@@ -23,7 +23,7 @@ class TestServeGuard(unittest.TestCase):
         self.serve.LEDGER, self.calls = os.path.join(self.enterContext(tempfile.TemporaryDirectory()), "spend.jsonl"), []
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
-        self.serve.run_jobs.remote.side_effect = lambda jobs: self.calls.append("remote") or {"rows": [{"ok": 1}], "gpu_seconds": 10.0}
+        self.serve.run_jobs.remote.side_effect = lambda jobs, model=None: self.calls.append(("remote", model)) or {"rows": [{"ok": 1}], "gpu_seconds": 10.0}
 
     def test_a_refusal_stops_before_any_remote_call_or_ledger_row(self):
         with mock.patch.object(guard, "ensure", side_effect=guard.Refused("no credit")), self.assertRaisesRegex(SystemExit, "refused: no credit"):
@@ -36,7 +36,19 @@ class TestServeGuard(unittest.TestCase):
         ensure = mock.Mock(side_effect=lambda *a: self.calls.append("ensure"))
         with mock.patch.object(guard, "ensure", ensure):
             self.serve.main(["smoke"])
-        self.assertEqual(self.calls, ["ensure", "remote"])
+        self.assertEqual(self.calls, ["ensure", ("remote", self.serve.MODEL)])
         self.assertEqual(ensure.call_args.args, (guard.worst_usd(self.serve.TIMEOUT_S, self.serve.GPU_USD_H), self.serve.LEDGER))
         with open(self.serve.LEDGER, encoding="utf-8") as f:
             self.assertEqual(json.loads(f.read())["seconds"], 10.0 + self.serve.BOOT_S)
+
+    def test_workers_serve_the_models_of_their_kind_guard_first_and_record_the_run(self):
+        ensure = mock.Mock(side_effect=lambda *a: self.calls.append("ensure"))
+        with mock.patch.object(guard, "ensure", ensure):
+            self.serve.main(["workers", "--kind", "small", "--seed", "0"])
+        self.assertEqual(self.calls, ["ensure", ("remote", "Qwen/Qwen3.5-2B")])
+        job = self.serve.run_jobs.remote.call_args.args[0][0]
+        self.assertEqual((job["kind"], job["seed"], job["size"]), ("small", 0, 20))
+        with open(self.serve.LEDGER, encoding="utf-8") as f:
+            self.assertEqual(json.loads(f.read())["seconds"], 10.0 + self.serve.BOOT_S)
+        with self.assertRaises(ValueError):  # a seed outside the dev split is refused before the guard
+            self.serve.main(["workers", "--kind", "small", "--seed", "1000"])

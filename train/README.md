@@ -10,6 +10,7 @@ Run from the repo root. `python -I` leaves the repo off the path, so `serve.py` 
 | --- | --- |
 | `MODAL_LIMIT_CHECKED=2026-11 uv run --with modal==1.6.4 python -I train/serve.py smoke` | Scores r10, dev seed 0, once, lock off |
 | `... python -I train/serve.py score --job r10:dev:0-2:lock --job r47:dev:0` | One job per `--job`: `RUNG:SPLIT:SEEDS[:lock]`, up to 10 seeds, r10 or r47 |
+| `... python -I train/serve.py workers --kind small --seed 0 --size 20` | Step 29, [#71](https://github.com/SoulCraft-Org/aurelius/issues/71): real workers of one type over a seeded Library, up to 200 items. Prints each item's reply; the clock and ledger row are as above. The container serves that type's model from `REAL_WORKERS` in `lair/real_workers.py` (small 2B, medium 4B, large 9B, all Apache-2.0), one per run, because the three do not fit one L4 together. The image holds all three |
 
 The run prints the score rows as JSON and adds one `ladder/spend.jsonl` row (lane `modal`, run id starting with the UTC date). A failed run is charged its measured GPU time, never zero. Commit the row with the scores.
 
