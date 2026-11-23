@@ -29,10 +29,14 @@ def tools(spec):  # the spec's 5 actions as function schemas
         "required": [n for n in a["args"] if n not in OPTIONAL]}}} for a in spec["actions"]]
 
 
+def render(text, spec, types):  # a prompt file's text with the spec's dial and worker types filled in
+    return text.rstrip("\n").replace("{dial}", json.dumps(spec["dial"])).replace("{types}", json.dumps(types))
+
+
 class ModelSeat(Seat):  # asks the model each round; the key is read per call, never stored
     def __init__(self, spec, cap_usd=None, max_calls=200):
         # MODEL_CAP_USD lets a workflow split one total cap across rungs; it can only lower the $1 ceiling.
-        # SEAT_URL, SEAT_MODEL, SEAT_KEY_ENV, SEAT_GPU_USD_H and SEAT_LOCK are the #65 overrides; unset, nothing changes.
+        # SEAT_URL, SEAT_MODEL, SEAT_KEY_ENV, SEAT_GPU_USD_H and SEAT_LOCK are the #65 overrides, SEAT_PROMPT_FILE the #69 one; unset, nothing changes.
         get = os.environ.get
         self.url, self.model = get("SEAT_URL") or URL, get("SEAT_MODEL") or MODEL
         parts = urllib.parse.urlparse(self.url)
@@ -53,6 +57,10 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         self.system = ("You are a seat over workers: each pending key needs one reply. Call tools: map keys to one worker type "
                        "(budget = credits_per_call x keys, within budget_left), check a sample of replies, then report. "
                        f"Dial: {json.dumps(spec['dial'])}. Types: {json.dumps(self.types)}.")
+        if get("SEAT_PROMPT_FILE"):  # the file replaces the text; its {dial} and {types} become the spec's JSON
+            with open(get("SEAT_PROMPT_FILE"), encoding="utf-8") as f:
+                self.system = render(f.read(), spec, self.types)
+        self.prompt = self.system  # the score stamp hashes it
 
     def decide(self, obs):
         view = {**obs, "replies": {k: r["status"] for k, r in obs["replies"].items()}}
