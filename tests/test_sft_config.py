@@ -59,7 +59,7 @@ class TestSftConfig(unittest.TestCase):
         with mock.patch.object(guard, "ensure"), self.assertRaises(RuntimeError):
             self.sft.main(["run", "--lessons", "lessons/v1.jsonl"])
         with open(self.sft.LEDGER, encoding="utf-8") as f:
-            self.assertGreater(json.loads(f.read())["seconds"], 0)
+            self.assertEqual(json.loads(f.read())["gpu"], self.sft.GPU)  # a row, charged by the clock
 
     def test_the_adapter_hash_is_recorded_beside_the_adapter(self):
         data = b"adapter bytes"
