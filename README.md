@@ -32,7 +32,43 @@ Each rung's recorded runs become the next rung's stand-ins ([training](docs/trai
 
 ## 📊 Scoreboard
 
-No scores yet. The first sim scores land in step 18 ([#20](https://github.com/SoulCraft-Org/aurelius/issues/20)).
+First scores, 2026-11-23, from [one `ladder.yml` run](https://github.com/SoulCraft-Org/aurelius/actions/runs/45107701093) on commit `9d525ad`. Source: [`ladder/scores.json`](ladder/scores.json).
+
+**Verified success on r10, the only rung where any seat passes (%)**
+
+```mermaid
+xychart-beta
+  title "Verified success on r10, sim (%)"
+  x-axis ["rule", "one_agent", "flat_fan_out", "cheapest_that_passes"]
+  y-axis "Verified success (%)" 0 --> 100
+  bar [33.3, 0, 0, 0]
+```
+
+**Verified success by rung (%)**
+
+| Seat | r10 | r47 | r2209 | r103823 |
+|---|---|---|---|---|
+| `rule` | 33 | 0 | 0 | 0 |
+| `one_agent` | 0 | 0 | 0 | 0 |
+| `flat_fan_out` | 0 | 0 | 0 | 0 |
+| `cheapest_that_passes` | 0 | 0 | 0 | 0 |
+
+**r103823, 1 seed**
+
+| Seat | Critical steps | Error growth per tier | Alarms reaching the top (%) |
+|---|---|---|---|
+| `rule` | 12 | 0.91 | 75.5 |
+| `one_agent` | 103,823 | n/a | 28.5 |
+| `flat_fan_out` | 1 | n/a | 77.3 |
+| `cheapest_that_passes` | 1 | n/a | 77.3 |
+
+Cost per verified success exists for one row: `rule` on r10, 131 credits. Every other row has no verified success, so it shows n/a.
+
+**Finding:** at today's assumed worker rates and a budget of 5 credits per agent, no seat reaches the 95% verified bar above 10 agents; closing that gap is what training is for.
+
+- Every score is sim.
+- Worker rates are assumed until fitted from real runs.
+- In sim, resume rate is a determinism check.
 
 ## 📚 Read more
 
