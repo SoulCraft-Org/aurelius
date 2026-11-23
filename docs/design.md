@@ -1,8 +1,8 @@
 # 🌳 The seat
 
-What one seat does, and what gets trained. Every figure names its source. All read 2026-11-22.
+Design only: nothing is built or trained yet.
 
-Sources: [`spec/aurelius.json`](../spec/aurelius.json) (spec) and [`docs/sources.md`](sources.md) (sources).
+Sources: [`spec/aurelius.json`](../spec/aurelius.json) (spec) and [`docs/sources.md`](sources.md) (sources). Every figure names its source. All read 2026-11-22.
 
 ## 🔁 The loop
 
@@ -27,7 +27,7 @@ flowchart TD
 | Tiers | 3 | [spec](../spec/aurelius.json) |
 | Workers | 47 × 47 × 47 = 103,823 | [spec](../spec/aurelius.json) |
 | Seats | 2,257 | [spec](../spec/aurelius.json) |
-| Why 47 | Our goal is 100,000 workers; its cube root is about 46.4. One orchestrator holds 100 (K2.5) to 300 (K2.6) sub-agents, a figure Kimi states about itself | [Kimi K2.6](https://kimi.com/blog/kimi-k2-6), [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
+| Why 47 | 47 × 47 × 47 = 103,823 workers (spec). One orchestrator holds 100 (K2.5) to 300 (K2.6) sub-agents, a figure Kimi states about itself | [Kimi K2.6](https://kimi.com/blog/kimi-k2-6), [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
 | Down | Goals and budgets | [spec](../spec/aurelius.json) |
 | Up | Summaries and alarms | [spec](../spec/aurelius.json) |
 | Run | Event-driven: a seat acts on a reply, an alarm, a deadline or a budget line | [spec](../spec/aurelius.json) |
@@ -43,7 +43,7 @@ flowchart TD
 | `stop` | Cancels children, then kills any still running after the grace period | children, grace_s | [spec](../spec/aurelius.json) |
 | `report` | Sends a summary, facts and alarms to the parent | summary, facts, alarms, spent | [spec](../spec/aurelius.json) |
 
-A learned router picks the cheaper worker: up to 31.7% lower cost at the quality of the best single model ([arXiv 2601.07206](https://arxiv.org/abs/2601.07206)). A cheaper call is not a cheaper finished task ([Switchyard](https://github.com/NVIDIA-NeMo/Switchyard)).
+A learned router is planned. One paper reports up to 31.7% lower cost at equal quality ([arXiv 2601.07206](https://arxiv.org/abs/2601.07206)); not measured here. A cheaper call is not a cheaper finished task ([Switchyard](https://github.com/NVIDIA-NeMo/Switchyard)).
 
 ## 📝 The order (5 fields)
 
@@ -92,7 +92,7 @@ Idea taken: a capped fix loop with a fresh worker ([Superpowers](https://github.
 |---|---|---|
 | ACP over stdio | One wire for every worker. 51 agents listed, OpenCode, Goose, Gemini CLI and Codex CLI among them. v1 stable; v2 in preview since 2026-11-20 | [Agent Client Protocol](https://agentclientprotocol.com) |
 | Exec shim | A small shim for agents without ACP | our design |
-| Adapter | Arrives at Hatchling | our plan |
+| Adapter | Planned for the first trained rung; not built yet | our plan |
 
 ## 🛡️ Safety
 
