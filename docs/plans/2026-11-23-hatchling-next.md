@@ -9,7 +9,7 @@ The code for steps 20 to 32 is merged. What is left is mostly runs on GPUs, then
 | 20, 21, 21b, 21c, 22, 23, 24, 25, 28, 29, 30c | Merged and closed |
 | 26, 27, 30, 30b, 31, 32 | Code merged; the run or the data PR is left |
 | Move 3 (step 24) | Swept rule seat (bar 0.5, sample 1.0) kept: share of items right +0.131 on r10 and +0.116 on r47, 100 val seeds, sim with assumed rates ([#90](https://github.com/SoulCraft-Org/aurelius/pull/90)) |
-| Smoke (step 25) | Untrained Qwen3.5-9B seat ran end to end on one L4: 560 GPU seconds, 0 format errors, r10 dev seed 0 |
+| Smoke (step 25) | Untrained Qwen3.5-9B seat ran end to end on one L4: 560 GPU seconds, 0 format errors, r10 dev seed 0, sim workers (run `2026-11-23T175228Z-smoke`, row in `ladder/spend.jsonl`) |
 
 ## 🗺️ Run order
 
@@ -56,5 +56,5 @@ flowchart LR
 
 | Lane | Rule |
 |---|---|
-| Modal's monthly credit | The guard refuses past $15 of Aurelius spend in a month, or with under $3 of credit left; set `MODAL_LIMIT_CHECKED` only after reading the dashboard's usage limit that month |
+| GPU jobs | `train/guard.py` refuses a job past the month's spend cap or the credit floor it names; give `MODAL_LIMIT_CHECKED` the month only after checking the provider's usage limit that month |
 | Every run | One `ladder/spend.jsonl` row, committed with its scores; billed must stay $0.00 |

@@ -88,10 +88,10 @@ Rung sizes: [ladder](ladder.md).
 
 | # | Area | Question | Answer |
 |---|---|---|---|
-| 1 | 🗺️ Tasks | How a goal becomes a task graph, and how small a task should be | ⬜ |
-| 2 | 🌳 Hierarchy | How many agents one orchestrator can watch, and when to add a layer | ⬜ |
-| 3 | ✅ Review | How to check results at scale: every one, or a sample | ⬜ |
-| 4 | 💰 Budget | Limits per goal on time, tokens and compute | ⬜ |
-| 5 | 🔁 Failure | When to retry, raise effort, change model or stop | ⬜ |
-| 6 | 👀 View | One board that shows the whole at a glance | ⬜ |
-| 7 | 🧑 People | Where a person must decide, and how they are asked | ⬜ |
+| 1 | 🗺️ Tasks | How a goal becomes a task graph, and how small a task should be | [design](design.md) |
+| 2 | 🌳 Hierarchy | How many agents one orchestrator can watch, and when to add a layer | [design](design.md) |
+| 3 | ✅ Review | How to check results at scale: every one, or a sample | [training](training.md), [ladder](ladder.md) |
+| 4 | 💰 Budget | Limits per goal on time, tokens and compute | [design](design.md), [training](training.md) |
+| 5 | 🔁 Failure | When to retry, raise effort, change model or stop | [design](design.md) |
+| 6 | 👀 View | One board that shows the whole at a glance | [design](design.md) |
+| 7 | 🧑 People | Where a person must decide, and how they are asked | [design](design.md) |
