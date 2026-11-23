@@ -1,4 +1,4 @@
-"""Step 31: turn transcript lines into chat examples for TRL SFT (conversational format with tool calls).
+"""Step 31: turn transcript lines into prompt-completion rows for TRL SFT (conversational format with tool calls).
 
 `python3 -m train.traces IN.jsonl OUT.jsonl --min-reward 0.9`. Each input line has seed, split, rung, obs, actions and
 the run's final reward. Dev seeds only: a val or test seed stops the run. Prints counts kept and dropped by reason.
@@ -13,8 +13,6 @@ from pathlib import Path
 from ladder.models import ModelSeat
 from lair import load_spec
 from lair.seat import validate_action
-
-REASONS = ("no_reward", "below_reward", "invalid", "wait_only", "duplicate", "over_cap")
 
 
 def user_message(obs):
@@ -32,14 +30,22 @@ def split_of(spec, line):
     return own
 
 
+def visible(user, actions):
+    """The actions with only what the user turn shows: hidden alarms are dropped; None if a child key is hidden."""
+    ok = lambda v: json.dumps(v) in user
+    if not all(ok(k) for a in actions for k in a.get("children", [])):
+        return None
+    return [{**a, "alarms": [x for x in a["alarms"] if ok(x)]} if "alarms" in a else a for a in actions]
+
+
 def example(seat, line):
-    """One chat example: system prompt, the obs as the user, the actions as tool calls, and the seat's tool schemas."""
-    calls = [{"type": "function", "function": {"name": a["name"], "arguments": {k: v for k, v in a.items() if k != "name"}}}
-             for a in line["actions"]]
-    return {"messages": [{"role": "system", "content": seat.system},
-                         {"role": "user", "content": user_message(line["obs"])},
-                         {"role": "assistant", "content": "", "tool_calls": calls}],
-            "tools": seat.tools}
+    """One prompt-completion row: [system, user] and the actions as tool calls (arguments as JSON strings), with the tools."""
+    user = user_message(line["obs"])
+    if (acts := visible(user, line["actions"])) is None:
+        return None
+    calls = [{"type": "function", "function": {"name": a["name"], "arguments": json.dumps({k: v for k, v in a.items() if k != "name"})}} for a in acts]
+    return {"prompt": [{"role": "system", "content": seat.system}, {"role": "user", "content": user}],
+            "completion": [{"role": "assistant", "content": "", "tool_calls": calls}], "tools": seat.tools}
 
 
 def convert(spec, lines, min_reward, cap=50):
@@ -50,27 +56,24 @@ def convert(spec, lines, min_reward, cap=50):
             raise ValueError(f"refused: seed {line['seed']} is in the {s} split; only dev seeds train")
     for line in lines:
         reward = line.get("reward")
-        if not isinstance(reward, (int, float)) or isinstance(reward, bool):
-            drops["no_reward"] += 1
-            continue
-        if reward < min_reward:
-            drops["below_reward"] += 1
+        if isinstance(reward, bool) or not isinstance(reward, (int, float)) or reward < min_reward:
+            drops["no_reward" if not isinstance(reward, (int, float)) else "below_reward"] += 1
             continue
         try:
             for a in line["actions"]:
                 validate_action(spec, a)
             user_message(line["obs"])
-            if not line["actions"]:
-                raise ValueError("no actions")
         except (ValueError, KeyError, TypeError, AttributeError):
             drops["invalid"] += 1
             continue
-        if all(a["name"] == "wait" for a in line["actions"]):
-            drops["wait_only"] += 1  # ModelSeat rejects a wait-only reply, so it is never a target
+        if all(a["name"] == "wait" for a in line["actions"]):  # also no actions: ModelSeat rejects both as "no usable tool call"
+            drops["no_usable_call"] += 1
             continue
         ex = example(seat, line)
-        key, run = json.dumps(ex["messages"][1:], sort_keys=True), (line.get("rung"), line["seed"])
-        if key in seen:
+        key, run = ex and json.dumps([ex["prompt"][1], ex["completion"]], sort_keys=True), (line.get("rung"), line["seed"])
+        if ex is None:
+            drops["hidden"] += 1
+        elif key in seen:
             drops["duplicate"] += 1
         elif per_run[run] >= cap:
             drops["over_cap"] += 1
@@ -84,7 +87,7 @@ def convert(spec, lines, min_reward, cap=50):
 def main(argv=None):
     p = argparse.ArgumentParser(prog="python3 -m train.traces", description=__doc__.splitlines()[0])
     p.add_argument("src", type=Path, help="transcript JSON lines")
-    p.add_argument("dst", type=Path, help="chat examples, JSON lines")
+    p.add_argument("dst", type=Path, help="prompt-completion rows, JSON lines")
     p.add_argument("--min-reward", type=float, required=True, help="keep runs at or above this final reward")
     p.add_argument("--cap", type=int, default=50, help="examples kept per run (rung and seed)")
     args = p.parse_args(argv)
@@ -95,8 +98,8 @@ def main(argv=None):
         sys.exit(str(err))
     args.dst.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows))
     print(f"kept {len(rows)} of {len(lines)}")
-    for r in REASONS:
-        print(f"dropped {r}: {drops[r]}")
+    for why, n in sorted(drops.items()):
+        print(f"dropped {why}: {n}")
 
 
 if __name__ == "__main__":

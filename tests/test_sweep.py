@@ -61,8 +61,7 @@ class SweepTest(unittest.TestCase):
 
     def test_a_transcript_line_has_split_rung_seed_and_the_final_reward(self):
         lines = [json.loads(x) for x in transcripts(SPEC, DEFAULT, 1)]
-        self.assertTrue(lines and all(x["split"] == "dev" and x["rung"] in RUNGS and x["seed"] == 0 for x in lines))
-        self.assertTrue(all(0 <= x["reward"] <= 1 for x in lines))
+        self.assertTrue(lines and all(x["split"] == "dev" and x["rung"] in RUNGS and x["seed"] == 0 and 0 <= x["reward"] <= 1 for x in lines))
         self.assertEqual(len({(x["rung"], x["reward"]) for x in lines}), len(RUNGS))  # one reward per run, the same on all its lines
 
     def test_the_command_writes_the_rows_and_the_transcripts(self):

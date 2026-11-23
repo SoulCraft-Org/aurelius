@@ -77,8 +77,7 @@ class _Tap:
 
 def transcripts(spec, pair, n=SEEDS):
     """JSON lines, one per decision, on the first n dev seeds of each rung; run_once refuses val and test seeds.
-
-    Each line has rung, seed, split, obs, actions and the run's final reward."""
+    Each line also has split and the run's final reward."""
     lines = []
     for rung, seed in product(RUNGS, seeds(spec, "dev", n)):
         mine = []
