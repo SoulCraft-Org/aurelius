@@ -91,7 +91,7 @@ Open a fold to see its rows.
 | Idea we take | Number | Source | Licence |
 |---|---|---|---|
 | Lock tool calls to a schema at decode time | | [vLLM structured outputs](https://docs.vllm.ai/en/latest/features/structured_outputs/) | Apache-2.0 |
-| Evolve prompts from run feedback instead of training | about 6% above GRPO with up to 35x fewer rollouts 🗣️ | [GEPA, arXiv 2507.19457](https://arxiv.org/abs/2507.19457) | paper |
+| Evolve prompts from run feedback instead of training | about 6% above GRPO with up to 35x fewer rollouts | [GEPA, arXiv 2507.19457](https://arxiv.org/abs/2507.19457) | paper |
 | LoRA can match full fine-tuning on small and medium sets, RL included | | [LoRA Without Regret](https://thinkingmachines.ai/blog/lora/) | blog: idea only, no text copied |
 | LoRA adapters for the student | | [PEFT](https://github.com/huggingface/peft) | Apache-2.0 |
 | GRPO on one GPU, vLLM colocated in the trainer | | [TRL GRPOTrainer](https://huggingface.co/docs/trl/main/en/grpo_trainer) | Apache-2.0 |
@@ -101,7 +101,7 @@ Open a fold to see its rows.
 | Fact editing changes facts, not skills, so it is skipped | | [ROME, arXiv 2202.05262](https://arxiv.org/abs/2202.05262) | paper |
 | Mass fact editing, same reason | thousands of edits | [MEMIT, arXiv 2210.07229](https://arxiv.org/abs/2210.07229) | paper |
 | A search loop drifts when its guardrails loosen, so the scorer stays out of its reach | | [Cerebras](https://www.cerebras.ai/blog/how-to-stop-your-autoresearch-loop-from-cheating) | blog: idea only, no text copied |
-| GPU list prices per second, the base of our credit estimates | | [Modal pricing](https://modal.com/pricing) | prices: we keep our own dated table |
+| GPU list prices per second, the base of our credit estimates | | [Modal pricing](https://modal.com/pricing) | n/a (vendor pricing page) |
 
 </details>
 
