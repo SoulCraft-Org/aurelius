@@ -20,12 +20,17 @@ def _pick(types, name):
     return min(pool, key=lambda t: t["credits_per_call"])
 
 
-def run_baseline(name, task, spec, seed, budget_credits):
-    """Run one baseline on a task and return its log. Spend never passes the budget."""
+def run_baseline(name, task, spec, seed, budget_credits, world=None):
+    """Run one baseline on a task and return its log. Spend never passes the budget.
+
+    The baseline picks its type from spec; the workers it calls behave as in world (default spec).
+    """
     if name not in NAMES:
         raise ValueError(f"name must be one of {NAMES}")
     sim = Sim(seed)
-    wtype = _pick(worker_types(spec), name)
+    types = worker_types(spec)
+    pick = _pick(types, name)
+    wtype = worker_types(world or spec)[next(k for k, v in types.items() if v is pick)]
     cost = wtype["credits_per_call"]
     serial = name == "one_agent" or not task.can_split
     if name != "one_agent":

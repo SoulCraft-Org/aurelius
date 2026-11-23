@@ -63,5 +63,7 @@
 ],
 "check": {"false_pass": 0.05, "false_fail": 0.05, "source": "assumed until fitted from real runs"},
 "safety": {"default_permission": "ask", "rules": "allow, ask or deny; the last match wins", "human_gate": ["spend", "irreversible", "outward"], "stop": "cancel, then kill after grace_s"},
-"score_row": {"fields": ["date", "commit", "rung", "seat", "workers", "seed", "metrics"], "workers": ["sim", "real"]}
+"seeds": {"dev": [0, 999], "val": [1000, 1999], "test": [2000, 2999]},
+"score_row": {"fields": ["date", "commit", "rung", "seat", "workers", "seed", "metrics", "split", "rates", "stamp"], "workers": ["sim", "real"],
+  "stamp": ["spec", "seat", "model", "revision", "adapter", "prompt"], "stamp_comment": "spec is the first 12 hex of sha256 of the canonical spec JSON; the rest are null for rule seats and baselines", "rates": "error rates times (1 + rates), from -0.5 to 0.5; 0 is the spec as written"}
 }
