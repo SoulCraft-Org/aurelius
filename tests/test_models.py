@@ -1,5 +1,6 @@
 """The model seat, with urlopen patched: no test here touches the network."""
 
+import http.client
 import json
 import os
 import unittest
@@ -97,7 +98,7 @@ class TestModelSeat(unittest.TestCase):
             row = score("r10", "model", seeds=(0,))
         self.assertEqual((row["seat"], row["model"], row["workers"]), ("model", "qwen/qwen3.5-9b", "sim"))
         self.assertIn("verified_success", row["metrics"])
-        self.assertEqual(sorted(row["model_stats"]), ["calls", "errors", "format_errors", "spent_usd"])
+        self.assertEqual(sorted(row["model_stats"]), ["calls", "endpoint", "errors", "format_errors", "lock", "spent_usd"])
         self.assertGreaterEqual(row["model_stats"]["calls"], 1)
 
     def test_an_http_error_is_named_by_its_status(self):
@@ -110,4 +111,84 @@ class TestModelSeat(unittest.TestCase):
     def test_a_bad_cap_from_the_environment_fails_closed(self):
         for bad in ("nan", "-1"):
             with self.subTest(bad), mock.patch.dict(os.environ, {"MODEL_CAP_USD": bad}), self.assertRaises(ValueError):
+                ModelSeat(SPEC)
+
+
+@mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": KEY})
+class TestAnyEndpoint(unittest.TestCase):  # #65: SEAT_URL, SEAT_MODEL, SEAT_KEY_ENV, SEAT_GPU_USD_H, SEAT_LOCK
+    VLLM = {"SEAT_URL": "http://gpu.example:8000/v1/chat/completions", "SEAT_MODEL": "Qwen/Qwen3.5-9B"}
+
+    def send(self, seat, obs=OBS):
+        with reply(MAP) as urlopen:
+            seat.decide(obs)
+        req = urlopen.call_args.args[0]
+        return req, json.loads(req.data)
+
+    def test_the_override_url_and_model_are_used_and_openrouter_alone_gets_the_provider_block(self):
+        with mock.patch.dict(os.environ, self.VLLM):
+            seat = ModelSeat(SPEC)
+            req, body = self.send(seat)
+        self.assertEqual((req.full_url, body["model"], "provider" in body, "tool_choice" in body),
+                         (self.VLLM["SEAT_URL"], "Qwen/Qwen3.5-9B", False, False))
+        self.assertEqual((seat.stats()["endpoint"], seat.stats()["lock"]), ("custom", False))
+        with mock.patch.dict(os.environ, {"SEAT_MODEL": "other/model"}):
+            self.assertEqual(self.send(ModelSeat(SPEC))[1]["provider"]["allow_fallbacks"], False)  # OpenRouter keeps it
+
+    def test_the_key_comes_from_the_named_variable_and_a_self_hosted_server_may_need_none(self):
+        with mock.patch.dict(os.environ, {**self.VLLM, "SEAT_KEY_ENV": "VLLM_KEY", "VLLM_KEY": "local-secret"}):
+            self.assertEqual(self.send(ModelSeat(SPEC))[0].get_header("Authorization"), "Bearer local-secret")
+        with mock.patch.dict(os.environ, {**self.VLLM, "SEAT_KEY_ENV": "NO_SUCH_KEY"}):
+            self.assertIsNone(self.send(ModelSeat(SPEC))[0].get_header("Authorization"))
+        with mock.patch.dict(os.environ, {"SEAT_KEY_ENV": "NO_SUCH_KEY"}), self.assertRaises(RuntimeError):
+            ModelSeat(SPEC).decide(OBS)  # OpenRouter without its key stays loud
+
+    def test_the_openrouter_key_never_goes_to_another_host(self):
+        with mock.patch.dict(os.environ, self.VLLM):  # OPENROUTER_API_KEY is set, SEAT_KEY_ENV is not
+            seat = ModelSeat(SPEC)
+            req, _ = self.send(seat)
+        self.assertEqual((seat.key_var, req.get_header("Authorization")), ("", None))
+
+    def test_the_url_scheme_is_https_or_http_for_a_server_that_is_not_openrouter(self):
+        for url in ("file:///etc/passwd", "ftp://gpu.example/v1", "gpu.example/v1", "http://openrouter.ai/api/v1/chat/completions"):
+            with self.subTest(url), mock.patch.dict(os.environ, {"SEAT_URL": url}), self.assertRaises(ValueError):
+                ModelSeat(SPEC)
+        with mock.patch.dict(os.environ, {"SEAT_URL": "https://gpu.example/v1/chat/completions"}):
+            self.assertEqual(ModelSeat(SPEC).stats()["endpoint"], "custom")
+
+    def test_an_error_nothing_catches_still_bills_in_full(self):
+        with mock.patch("urllib.request.urlopen", side_effect=http.client.IncompleteRead(b"")), self.assertRaises(http.client.IncompleteRead):
+            seat = ModelSeat(SPEC)
+            seat.decide(OBS)
+        self.assertGreater(seat.spent_usd, 1024 * 0.25 / 1e6)
+
+    def test_the_lock_requires_a_tool_call_and_enumerates_the_keys_that_may_be_sent(self):
+        obs = {**OBS, "pending": ["k1"], "checked": {"k2": False},
+               "replies": {"k0": {"status": "completed"}, "k2": {"status": "completed"}, "k3": {"status": "failed"}}}
+        with mock.patch.dict(os.environ, {"SEAT_LOCK": "1"}):
+            seat = ModelSeat(SPEC)
+            static = json.dumps(seat.tools)
+            _, body = self.send(seat, obs)
+        enum = {t["function"]["name"]: t["function"]["parameters"]["properties"]["children"] for t in body["tools"] if t["function"]["name"] in ("map", "check")}
+        self.assertEqual(body["tool_choice"], "required")
+        self.assertEqual(enum["map"]["items"]["enum"], ["k1", "k2", "k3"])  # pending plus retryable
+        self.assertEqual(enum["check"]["items"]["enum"], ["k0", "k3"])  # replies not yet checked
+        self.assertEqual((json.dumps(seat.tools), seat.stats()["lock"]), (static, True))  # built on a copy
+        with mock.patch.dict(os.environ, {"SEAT_LOCK": "1"}):
+            _, none = self.send(ModelSeat(SPEC), {**OBS, "pending": [], "replies": {}})
+        self.assertFalse({"map", "check"} & {t["function"]["name"] for t in none["tools"]})  # no key, no tool
+
+    def test_time_billing_trips_the_cap_and_the_ceiling_is_five_dollars(self):
+        with mock.patch.dict(os.environ, {**self.VLLM, "SEAT_GPU_USD_H": "3600"}):  # $1 per second
+            seat = ModelSeat(SPEC, cap_usd=2)
+            self.assertEqual((seat.cap_usd, ModelSeat(SPEC, cap_usd=9).cap_usd), (2, 5.0))
+            with reply(MAP) as urlopen, mock.patch("time.monotonic", side_effect=[10.0, 13.0]):
+                seat.decide(OBS)
+                self.assertEqual(names(seat.decide({**OBS, "budget_left": {"credits": 9}})), ENDS)  # 3 s x $1 >= $2
+            self.assertEqual(urlopen.call_count, 1)
+        self.assertAlmostEqual(seat.spent_usd, 3.0)  # tokens did not count: 1100 were reported
+        self.assertEqual(ModelSeat(SPEC, cap_usd=9).cap_usd, 1.0)  # a token-billed API stays at $1
+
+    def test_a_bad_gpu_price_fails_closed(self):
+        for bad in ("nan", "-1", "inf"):
+            with self.subTest(bad), mock.patch.dict(os.environ, {"SEAT_GPU_USD_H": bad}), self.assertRaises(ValueError):
                 ModelSeat(SPEC)

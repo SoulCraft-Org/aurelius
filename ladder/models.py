@@ -1,8 +1,12 @@
-"""A model seat: an untrained model on OpenRouter, pinned to US hosts, with a hard spend cap."""
+"""A model seat: an untrained model on OpenRouter (or any OpenAI-compatible server), with a hard spend cap."""
 
+import copy
 import hashlib
 import json
+import math
 import os
+import time
+import urllib.parse
 import urllib.request
 
 from lair.seat import OPTIONAL, Seat, validate_action
@@ -28,10 +32,21 @@ def tools(spec):  # the spec's 5 actions as function schemas
 class ModelSeat(Seat):  # asks the model each round; the key is read per call, never stored
     def __init__(self, spec, cap_usd=None, max_calls=200):
         # MODEL_CAP_USD lets a workflow split one total cap across rungs; it can only lower the $1 ceiling.
-        cap = cap_usd if cap_usd is not None else float(os.environ.get("MODEL_CAP_USD", "1.0"))
-        if not cap >= 0:  # also rejects nan, which would never trip the cap
-            raise ValueError("cap must be a number, 0 or more")
-        self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0), max_calls
+        # SEAT_URL, SEAT_MODEL, SEAT_KEY_ENV, SEAT_GPU_USD_H and SEAT_LOCK are the #65 overrides; unset, nothing changes.
+        get = os.environ.get
+        self.url, self.model = get("SEAT_URL") or URL, get("SEAT_MODEL") or MODEL
+        parts = urllib.parse.urlparse(self.url)
+        host = parts.hostname or ""
+        self.openrouter, self.lock = host == "openrouter.ai" or host.endswith(".openrouter.ai"), get("SEAT_LOCK") == "1"
+        if parts.scheme != "https" and not (parts.scheme == "http" and host and not self.openrouter):  # no file:, and no plain http to OpenRouter
+            raise ValueError("SEAT_URL must be https, or http for a server that is not OpenRouter")
+        # the OpenRouter key goes to OpenRouter only: another host gets the key SEAT_KEY_ENV names, or none
+        self.key_var = get("SEAT_KEY_ENV") or ("OPENROUTER_API_KEY" if self.openrouter else "")
+        self.gpu_usd_h = float(get("SEAT_GPU_USD_H")) if get("SEAT_GPU_USD_H") else None  # set: spend is wall time x this price
+        cap = cap_usd if cap_usd is not None else float(get("MODEL_CAP_USD", "1.0"))
+        if not cap >= 0 or not (self.gpu_usd_h is None or math.isfinite(self.gpu_usd_h) and self.gpu_usd_h >= 0):  # also rejects nan, which would never trip the cap
+            raise ValueError("cap and GPU price must be numbers, 0 or more")
+        self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0 if self.gpu_usd_h is None else 5.0), max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
         self.spent_usd, self.calls, self.asks, self.format_errors, self._cache = 0.0, 0, 0, 0, {}
         self.errors = {}  # kind -> count: an HTTP status, an exception name or an API error code; never a body or the key
@@ -44,10 +59,14 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         self.asks += 1  # cached answers are free but not endless: a seat that loops on one is cut off
         if self.asks > 5 * self.max_calls:
             return self._end(obs)
-        body = json.dumps({"model": MODEL, "temperature": 0, "max_tokens": MAX_TOKENS, "provider": PROVIDER, "tools": self.tools,
-                           "messages": [{"role": "system", "content": self.system},
-                                        {"role": "user", "content": json.dumps(view, sort_keys=True, separators=(",", ":"))}]},
-                          sort_keys=True)
+        req = {"model": self.model, "temperature": 0, "max_tokens": MAX_TOKENS, "tools": self.tools,
+               "messages": [{"role": "system", "content": self.system},
+                            {"role": "user", "content": json.dumps(view, sort_keys=True, separators=(",", ":"))}]}
+        if self.openrouter:
+            req["provider"] = PROVIDER  # OpenRouter's routing block: no other server gets it
+        if self.lock:
+            req.update(tool_choice="required", tools=self._locked(obs))
+        body = json.dumps(req, sort_keys=True)
         key = hashlib.sha256(body.encode()).hexdigest()
         if key not in self._cache:  # a replay from the same seed asks the same questions: answer them free
             if self.spent_usd >= self.cap_usd or self.calls >= self.max_calls:
@@ -62,11 +81,13 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         return json.loads(self._cache[key])
 
     def _post(self, body):  # one call; None on any failure, which is billed in full and whose text is dropped
-        token = os.environ.get("OPENROUTER_API_KEY")
-        if not token:
-            raise RuntimeError("OPENROUTER_API_KEY is not set")  # loud: a score row without a key would mislead
-        req = urllib.request.Request(URL, body.encode(), {"Content-Type": "application/json", "Authorization": f"Bearer {token}"})
+        token = os.environ.get(self.key_var)
+        if not token and self.openrouter:
+            raise RuntimeError(f"{self.key_var} is not set")  # loud: a score row without a key would mislead
+        head = {"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})}  # a self-hosted server may need none
+        req = urllib.request.Request(self.url, body.encode(), head)
         self.calls += 1
+        start, data, use = time.monotonic(), None, None
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 data = json.load(r)
@@ -74,13 +95,30 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         except (OSError, ValueError, AttributeError) as err:
             self._note(f"http_{err.code}" if isinstance(getattr(err, "code", None), int) else type(err).__name__)
             data = use = None
+        finally:  # any exit bills in full, even one nothing here catches (http.client.IncompleteRead)
+            use = use if isinstance(use, dict) else {}
+            num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
+            if self.gpu_usd_h is not None:  # time-billed: the GPU is rented by the hour, so a failed call costs its wall time too
+                self.spent_usd += (time.monotonic() - start) * self.gpu_usd_h / 3600
+            else:
+                self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
         if isinstance(data, dict) and isinstance(data.get("error"), dict):
             code = data["error"].get("code")  # only an integer code: provider text never reaches a public row
             self._note(f"api_{code}" if isinstance(code, int) and not isinstance(code, bool) else "api_error")
-        use = use if isinstance(use, dict) else {}
-        num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
-        self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
         return data
+
+    def _locked(self, obs):  # a copy of the static schemas with this call's enum on children: only keys that may be sent
+        allowed = {"map": set(obs["pending"]) | self._retry(obs), "check": set(obs["replies"]) - set(obs["checked"])}
+        out = copy.deepcopy(self.tools)
+        for t in out:
+            keys = allowed.get(t["function"]["name"])
+            if keys is not None:
+                t["function"]["parameters"]["properties"]["children"] = {"type": "array", "items": {"type": "string", "enum": sorted(keys)}}
+        return [t for t in out if allowed.get(t["function"]["name"], True)]  # no key to send, no tool: an empty enum is invalid
+
+    @staticmethod
+    def _retry(obs):  # replies a map may send again
+        return {k for k, r in obs["replies"].items() if r["status"] == "failed" or obs["checked"].get(k) is False}
 
     def _note(self, kind):
         kind = str(kind)[:40]
@@ -89,12 +127,12 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
     def stats(self):
         """What the seat did, for the score row: no prompt, no answer text, no key."""
         return {"calls": self.calls, "spent_usd": round(self.spent_usd, 6), "format_errors": self.format_errors,
-                "errors": dict(sorted(self.errors.items()))}
+                "errors": dict(sorted(self.errors.items())), "endpoint": "openrouter" if self.openrouter else "custom", "lock": self.lock}
 
     def _parse(self, data, obs):
         calls = data["choices"][0]["message"].get("tool_calls") or []
         acts = [{"name": c["function"]["name"], **json.loads(c["function"]["arguments"])} for c in calls]
-        retry = {k for k, r in obs["replies"].items() if r["status"] == "failed" or obs["checked"].get(k) is False}
+        retry = self._retry(obs)
         left = obs["budget_left"]["credits"]  # one running budget for the whole reply, not per action
         mapped = set()  # a map clears its keys' replies, so a later check in this reply would find none
         for a in acts:
