@@ -30,6 +30,7 @@ class ValidateTest(unittest.TestCase):
                 fn(SPEC, c)
 
     def test_orders(self):
+        self.assertRaises(TypeError, Seat)
         validate_order(SPEC, {**ORDER, "budget": {"credits": 0, "seconds": 0.5, "tokens": 9}})
         bad = [3, {"credits": 1}, {"credits": -1, "seconds": 1}, {"credits": "1", "seconds": 1}]
         self.rejects(validate_order, [{**ORDER, "budget": b} for b in bad] + [{**ORDER, "x": 1}, "x"])

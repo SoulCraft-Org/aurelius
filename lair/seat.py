@@ -1,5 +1,7 @@
 """The seat: the 5 actions, their validators and a rule-based seat."""
 
+from abc import ABC, abstractmethod
+
 OPTIONAL = {"sample", "grace_s", "until", "facts", "alarms", "spent"}
 
 
@@ -36,12 +38,10 @@ def validate_action(spec, action):
         validate_order(spec, action["order"])
 
 
-class Seat:
-    """Reads an observation, returns a list of actions."""
-
+class Seat(ABC):
+    @abstractmethod
     def decide(self, obs):
-        """Return the actions to take for obs. Subclasses must override."""
-        raise NotImplementedError
+        """Read an observation; return the list of actions to take."""
 
 
 class RuleSeat(Seat):
