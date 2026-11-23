@@ -75,7 +75,8 @@ class TestModelSeat(unittest.TestCase):
                 acts = seat.decide(OBS)
                 self.assertEqual((names(acts), seat.format_errors), (ENDS, 1))
                 self.assertGreater(seat.spent_usd, 1024 * 0.25 / 1e6)  # at least a full answer: unknown is never zero
-                self.assertNotIn(KEY, json.dumps(acts) + repr(vars(seat)))
+                self.assertNotIn(KEY, json.dumps(acts) + repr(vars(seat)) + json.dumps(seat.stats()))
+                self.assertEqual(sum(seat.stats()["errors"].values()) >= 1, True)
 
     def test_score_runs_the_model_seat_end_to_end(self):
         # Regression: score() once passed the seat into run_once's budget slot and crashed before any call.
@@ -84,6 +85,15 @@ class TestModelSeat(unittest.TestCase):
             row = score("r10", "model", seeds=(0,))
         self.assertEqual((row["seat"], row["model"], row["workers"]), ("model", "qwen/qwen3.5-9b", "sim"))
         self.assertIn("verified_success", row["metrics"])
+        self.assertEqual(sorted(row["model_stats"]), ["calls", "errors", "format_errors", "spent_usd"])
+        self.assertGreaterEqual(row["model_stats"]["calls"], 1)
+
+    def test_an_http_error_is_named_by_its_status(self):
+        err = urllib.error.HTTPError("https://openrouter.ai", 404, f"no endpoint {KEY}", {}, None)
+        with mock.patch("urllib.request.urlopen", side_effect=err):
+            self.seat.decide(OBS)
+        self.assertEqual(self.seat.stats()["errors"], {"TypeError": 1, "http_404": 1})
+        self.assertNotIn(KEY, json.dumps(self.seat.stats()))
 
     def test_a_bad_cap_from_the_environment_fails_closed(self):
         for bad in ("nan", "-1"):

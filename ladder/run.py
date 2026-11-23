@@ -174,10 +174,11 @@ def run_once(rung_id, seat, spec, seed, kind="table", budget=None, model=None):
 def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
     """The spec's score row for a seat on a rung, with the 8 metrics over all seeds."""
     model = ModelSeat(load_spec()) if seat == "model" else None  # one seat for every seed: one shared cap
+    metrics = compute([run_once(rung_id, seat, load_spec(), s, kind, model=model) for s in seeds])
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
-            "workers": "sim", **({"model": MODEL} if model else {}), "seed": list(seeds),
-            "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind, model=model) for s in seeds])}
+            "workers": "sim", **({"model": MODEL, "model_stats": model.stats()} if model else {}), "seed": list(seeds),
+            "metrics": metrics}
 
 
 def parse_args(argv=None):
