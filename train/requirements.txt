@@ -1,3 +1,4 @@
 # Installed only inside the Modal image. vllm pins torch and flashinfer itself. Releases 2+ weeks old on 2026-11-23, read on PyPI.
 vllm==0.33.0
 transformers==5.20.2
+gepa==0.1.4
