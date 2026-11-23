@@ -56,9 +56,9 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 
 | Kind | Why | Source, read 2026-11-22 |
 |---|---|---|
-| Fill-the-table research with known answers | Success is checkable | [arXiv 2602.04634](https://arxiv.org/abs/2602.04634) |
+| Fill-the-table research with known answers | Success is checkable | our plan |
 | Planted faults and alarms | Tests whether alarms reach the root seat | [spec](../spec/aurelius.json) |
-| Tasks where splitting is wrong | Sequential work gets worse with more agents: 39% to 70% on sequential planning | [arXiv 2512.08296](https://arxiv.org/abs/2512.08296) |
+| Tasks where splitting is wrong | Sequential work gets worse with more agents: 39% to 70% worse on sequential planning | [arXiv 2512.08296](https://arxiv.org/abs/2512.08296) |
 
 ## 📦 Data rule
 
