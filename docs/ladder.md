@@ -58,7 +58,7 @@ Source: `spec/aurelius.json`, `baselines`, read 2026-11-22.
 
 ## 🚪 Gates
 
-Each rung's targets are set from the baseline numbers measured on the rung below, not guessed now.
+No targets yet. Each rung's targets come from the 3 baselines run on that same rung, not from guesses.
 
 | Step | Target |
 |---|---|
