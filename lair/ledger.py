@@ -15,8 +15,6 @@ class Ledger:
 
     def add(self, kind, **data):
         """Append an entry. It is stored as JSON, so it equals its saved copy."""
-        if "kind" in data:
-            raise ValueError("'kind' is reserved in add()")
         text = json.dumps({"kind": kind, **data}, sort_keys=True, allow_nan=False)
         self.entries.append(json.loads(text))
 

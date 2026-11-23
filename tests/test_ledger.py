@@ -33,11 +33,11 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(Ledger().to_jsonl(), "")
         self.assertEqual(Ledger.from_jsonl("").entries, [])
 
-    def test_add_stores_json_form_and_reserves_kind(self):
+    def test_add_stores_json_form_and_rejects_nan(self):
         ledger = Ledger()
         ledger.add("a", pair=(1, 2))
         self.assertEqual(ledger.entries, [{"kind": "a", "pair": [1, 2]}])
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):  # kind is the first argument
             ledger.add("a", kind="b")
         with self.assertRaises(ValueError):
             ledger.add("a", x=float("nan"))
