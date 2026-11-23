@@ -67,8 +67,8 @@ class SeatAdapter:
         return env.reward(), {"seed": seed, "steps": steps, "reward": env.reward()}
 
     def make_reflective_dataset(self, candidate, eval_batch, components_to_update):
-        recs = [{"Inputs": {"rung": RUNG, "seed": t["seed"]}, "Generated Outputs": t["steps"],
-                 "Feedback": f"reward {t['reward']:.2f} of 1, the share of items right"} for t in eval_batch.trajectories]
+        recs = [{"Inputs": {"seed": t["seed"]}, "Generated Outputs": t["steps"], "Feedback": f"reward {t['reward']:.2f} of 1, the share of items right"}
+                for t in eval_batch.trajectories]
         return {name: recs for name in components_to_update}
 
     def rows(self):  # one score row per generation: each prompt GEPA tried, in order, on the dev seeds it saw
@@ -87,10 +87,9 @@ def run_gepa(seed_prompt):
     from gepa import optimize  # inside the container only
     t0 = time.monotonic()
     os.environ.update(SEAT_URL=URL, SEAT_MODEL=serve.MODEL, SEAT_GPU_USD_H=str(serve.GPU_USD_H), SEAT_LOCK="0")
-    cmd = ["vllm", "serve", serve.MODEL, "--revision", serve.REVISION, "--served-model-name", serve.MODEL, "--host", "127.0.0.1",
-           "--port", str(serve.PORT), "--max-model-len", "16384", "--max-num-seqs", str(WORKERS), "--gpu-memory-utilization", "0.90",
-           "--language-model-only", "--enforce-eager", "--enable-auto-tool-choice", "--tool-call-parser", "qwen3_coder",
-           "--default-chat-template-kwargs", '{"enable_thinking": false}']  # serve.run_jobs's start, which is inline there
+    cmd = (f"vllm serve {serve.MODEL} --revision {serve.REVISION} --served-model-name {serve.MODEL} --host 127.0.0.1 --port {serve.PORT} "
+           f"--max-model-len 16384 --max-num-seqs {WORKERS} --gpu-memory-utilization 0.90 --language-model-only --enforce-eager "
+           "--enable-auto-tool-choice --tool-call-parser qwen3_coder").split() + ["--default-chat-template-kwargs", '{"enable_thinking": false}']  # serve.run_jobs's
     proc, out, error, deadline = None, {}, None, t0 + TIMEOUT_S - 300  # no episode starts past it: Modal's hard stop would drop every row
     try:
         proc = subprocess.Popen(cmd)
