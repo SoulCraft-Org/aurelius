@@ -24,7 +24,7 @@ MODEL, REVISION = "Qwen/Qwen3.5-9B", "c202236235762e1c871ad0ccb60c8ee5ba337b9a" 
 GPU, GPU_USD_H = "L4", 0.80  # 24 GB; Modal's list price, $0.000222 a second, read 2026-11-23 (modal.com/pricing)
 TIMEOUT_S, START_S, BOOT_S, PORT, HF = 1800, 900, 180, 8000, "/opt/hf"  # hard stop; wait for vLLM; cold start the ledger adds (our estimate)
 WEIGHTS = {MODEL: REVISION, **{w["model"]: w["revision"] for w in REAL_WORKERS.values()}}  # every model a container may serve
-MAX_ITEMS = 200  # items per workers job: bounds the GPU time
+MAX_ITEMS, CALL_S = 200, 50  # items per workers job; seconds a model call may take: 5 calls (4 tool rounds and the answer) fit the 300 s margin
 LEDGER = ROOT / "ladder" / "spend.jsonl"
 REQS = [x for x in (ROOT / "train" / "requirements.txt").read_text().splitlines() if x and x[0] != "#"] if modal.is_local() else []
 
@@ -87,12 +87,26 @@ def _workers(job, url, model, t0):  # real workers over one seeded Library: the 
     from lair.real_workers import RealWorker
     from lair.tasks import make_task
     task = make_task(job["seed"], job["size"])
-    worker, replies = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"])), {}
+    deadline = t0 + TIMEOUT_S - 300  # no call runs past it: Modal's hard stop would discard every reply
+    worker, replies = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline), {}
     for it in task.items:
-        if time.monotonic() - t0 > TIMEOUT_S - 300:
+        reply = worker(it) if time.monotonic() <= deadline else None
+        if reply is None or time.monotonic() > deadline:  # an item cut short by the deadline is not a measurement
             return {"job": job, "replies": replies, "skipped": [i.key for i in task.items if i.key not in replies]}
-        replies[it.key] = worker(it)
+        replies[it.key] = reply
     return {"job": job, "replies": replies}
+
+
+def _within(cast, hi):  # an argparse type: a number from 0 to hi; nan fails too. A bad value exits before the guard, so no GPU is booked
+    def parse(text):
+        try:
+            v = cast(text)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"not a number: {text[:20]!r}") from None
+        if not 0 <= v <= hi:
+            raise argparse.ArgumentTypeError(f"{text[:20]!r} is outside 0 to {hi}")
+        return v
+    return parse
 
 
 def _job(text):  # RUNG:SPLIT:SEEDS[:lock], SEEDS as 0,1,2 or 0-2
@@ -118,8 +132,8 @@ def main(argv=None):
     w.add_argument("--seed", type=int, required=True)
     w.add_argument("--split", default="dev")
     w.add_argument("--size", type=int, default=20, help=f"items, 1 to {MAX_ITEMS}")
-    for knob, default in (("distractors", 2), ("conflicts", 0.3), ("noise", 1.0)):  # our choice: a Library that is not trivial
-        w.add_argument(f"--{knob}", type=type(default), default=default)
+    for knob, cast, hi, default in (("distractors", int, 10, 2), ("conflicts", float, 1, 0.3), ("noise", float, 5, 1.0)):  # ours: a Library that is not trivial
+        w.add_argument(f"--{knob}", type=_within(cast, hi), default=default, help=f"0 to {hi}")
     args = p.parse_args(argv)
     model = REAL_WORKERS[args.kind]["model"] if args.cmd == "workers" else MODEL
     if args.cmd == "workers":

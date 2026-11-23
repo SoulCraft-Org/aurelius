@@ -86,6 +86,12 @@ class RealWorkersTest(unittest.TestCase):
         self.assertIn(ITEM.key, sent[0])
         self.assertNotIn(ITEM.answer, sent[0])  # the second request holds the search result, which may hold it
 
+    def test_no_call_runs_past_the_deadline(self):
+        with mock.patch("urllib.request.urlopen") as urlopen:
+            out = RealWorker("small", "http://localhost:8000/v1", "m", LIB, deadline=0).do_item(ITEM)
+        urlopen.assert_not_called()
+        self.assertEqual((out["status"], out["spent"]["credits"]), ("failed", 1))
+
     def test_a_bad_url_is_refused(self):
         with self.assertRaises(ValueError):
             RealWorker("small", "file:///etc/passwd", "m", LIB)

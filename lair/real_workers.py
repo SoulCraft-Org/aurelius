@@ -30,11 +30,11 @@ BAD = (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError, htt
 
 
 class RealWorker:
-    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S):
+    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S, deadline=None):  # deadline: a time.monotonic() value no call may pass
         if urllib.parse.urlparse(url).scheme not in ("http", "https"):
             raise ValueError("url must be http or https")
         self.wtype = worker_types(spec or load_spec())[kind]
-        self.url, self.model, self.library, self.timeout = url, model, library, timeout
+        self.url, self.model, self.library, self.timeout, self.deadline = url, model, library, timeout, deadline
 
     def __call__(self, item):
         return self.do_item(item)
@@ -78,7 +78,10 @@ class RealWorker:
         body = json.dumps(req).encode()
         head = {"Content-Type": "application/json"}
         try:
-            with urllib.request.urlopen(urllib.request.Request(self.url, body, head), timeout=self.timeout) as r:
+            wait = self.timeout if self.deadline is None else min(self.timeout, self.deadline - time.monotonic())
+            if wait <= 0:
+                raise TimeoutError("past the deadline")
+            with urllib.request.urlopen(urllib.request.Request(self.url, body, head), timeout=wait) as r:
                 data = json.load(r)
             n = data["usage"]["total_tokens"]
             used["tokens"] += n if isinstance(n, int) and not isinstance(n, bool) and n > 0 else len(body) // 3 + MAX_TOKENS
