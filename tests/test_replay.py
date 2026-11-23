@@ -11,7 +11,7 @@ REPLAYED = ("r10", "r47")
 
 
 def rows():
-    return [r for r in json.loads(SCORES.read_text()) if r["rung"] in REPLAYED]
+    return [r for r in json.loads(SCORES.read_text()) if r["rung"] in REPLAYED and r["seat"] != "model"]  # model rows need the network
 
 
 class TestReplay(unittest.TestCase):
