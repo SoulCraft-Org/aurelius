@@ -88,7 +88,7 @@ def _workers(job, url, model, t0):  # real workers over one seeded Library: the 
     from lair.tasks import make_task
     task = make_task(job["seed"], job["size"])
     deadline = t0 + TIMEOUT_S - 300  # no call runs past it: Modal's hard stop would discard every reply
-    worker = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline, brief=job["brief"])
+    worker = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline, brief=job.get("brief", "terse"))
     replies = {}
     for it in task.items:
         reply = worker(it) if time.monotonic() <= deadline else None
