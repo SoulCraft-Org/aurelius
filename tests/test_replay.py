@@ -11,8 +11,7 @@ REPLAYED = ("r10", "r47")
 
 
 def rows():
-    # a "model" row needs the network and a key, so the replay skips it
-    return [r for r in json.loads(SCORES.read_text()) if r["rung"] in REPLAYED and r["seat"] != "model"]
+    return [r for r in json.loads(SCORES.read_text()) if r["rung"] in REPLAYED and r["seat"] != "model"]  # model rows need the network
 
 
 class TestReplay(unittest.TestCase):

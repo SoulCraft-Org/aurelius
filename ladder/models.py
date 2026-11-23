@@ -6,16 +6,16 @@ import os
 import urllib.request
 
 from lair.seat import OPTIONAL, Seat, validate_action
+from lair.workers import CHECK_COST
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "qwen/qwen3.5-9b"
 PROVIDER = {"only": ["deepinfra", "together", "primeintellect"], "allow_fallbacks": False, "data_collection": "deny"}
-PRICE_IN, PRICE_OUT = 0.15 / 1e6, 0.25 / 1e6  # USD per token: the highest price among the pinned hosts
+PRICE_IN, PRICE_OUT, MAX_TOKENS = 0.15 / 1e6, 0.25 / 1e6, 1024  # USD per token: the highest among the pinned hosts
 TYPES = {"children": "array", "alarms": "array", "facts": "array", "spent": "object", "summary": "string", "until": "string"}
 
 
-def tools(spec):
-    """The spec's 5 actions as function schemas."""
+def tools(spec):  # the spec's 5 actions as function schemas
     props = {f["field"]: {"type": f["type"]} for f in spec["order"]}
     props["budget"] = {"type": "object", "properties": {"credits": {"type": "number"}, "seconds": {"type": "number"}}}
     args = {"order": {"type": "object", "properties": props, "required": list(props)},
@@ -25,52 +25,52 @@ def tools(spec):
         "required": [n for n in a["args"] if n not in OPTIONAL]}}} for a in spec["actions"]]
 
 
-class ModelSeat(Seat):
-    """Asks the model what to do each round. The key is read per call, never stored."""
+class ModelSeat(Seat):  # asks the model each round; the key is read per call, never stored
     def __init__(self, spec, cap_usd=1.0, max_calls=200):
         self.spec, self.cap_usd, self.max_calls = spec, cap_usd, max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
-        self.spent_usd, self.calls, self.format_errors, self._cache = 0.0, 0, 0, {}
-        self.system = ("You are a seat over workers: each pending key needs one worker reply. Call tools: map keys to one "
-                       "worker type (order budget = credits_per_call x keys, within budget_left), check a sample of replies, "
-                       f"then report. Dial: {json.dumps(spec['dial'])}. Types: {json.dumps(self.types)}.")
+        self.spent_usd, self.calls, self.asks, self.format_errors, self._cache = 0.0, 0, 0, 0, {}
+        self.system = ("You are a seat over workers: each pending key needs one reply. Call tools: map keys to one worker type "
+                       "(budget = credits_per_call x keys, within budget_left), check a sample of replies, then report. "
+                       f"Dial: {json.dumps(spec['dial'])}. Types: {json.dumps(self.types)}.")
 
     def decide(self, obs):
-        alarms = sorted({a for r in obs["replies"].values() for a in r.get("alarms", [])})
-        view = {**obs, "replies": {k: r["status"] for k, r in obs["replies"].items()}, "alarms": alarms}
-        body = json.dumps({"model": MODEL, "temperature": 0, "provider": PROVIDER, "tools": self.tools, "messages": [
-            {"role": "system", "content": self.system},
-            {"role": "user", "content": json.dumps(view, sort_keys=True, separators=(",", ":"))}]}, sort_keys=True)
+        view = {**obs, "replies": {k: r["status"] for k, r in obs["replies"].items()}}
+        self.asks += 1  # cached answers are free but not endless: a seat that loops on one is cut off
+        if self.asks > 5 * self.max_calls:
+            return self._end(obs)
+        body = json.dumps({"model": MODEL, "temperature": 0, "max_tokens": MAX_TOKENS, "provider": PROVIDER, "tools": self.tools,
+                           "messages": [{"role": "system", "content": self.system},
+                                        {"role": "user", "content": json.dumps(view, sort_keys=True, separators=(",", ":"))}]},
+                          sort_keys=True)
         key = hashlib.sha256(body.encode()).hexdigest()
         if key not in self._cache:  # a replay from the same seed asks the same questions: answer them free
             if self.spent_usd >= self.cap_usd or self.calls >= self.max_calls:
-                return self._end(obs, alarms)
-            data = self._post(body)
-            if data is None:
-                return self._end(obs, alarms)
+                return self._end(obs)
             try:
-                acts = self._parse(data, obs)
+                acts = self._parse(self._post(body), obs)  # a failed call gives None: counted, ended and cached like a bad answer
             except (ValueError, TypeError, KeyError, IndexError, AttributeError):
                 self.format_errors += 1
-                acts = self._end(obs, alarms)
+                acts = self._end(obs)
             self._cache[key] = json.dumps(acts)
         return json.loads(self._cache[key])
 
-    def _post(self, body):
-        """One call. A failed call is counted and returns None; its text is dropped, never raised."""
+    def _post(self, body):  # one call; None on any failure, which is billed in full and whose text is dropped
         token = os.environ.get("OPENROUTER_API_KEY")
         if not token:
-            raise ValueError("OPENROUTER_API_KEY is not set")
+            raise RuntimeError("OPENROUTER_API_KEY is not set")  # loud: a score row without a key would mislead
         req = urllib.request.Request(URL, body.encode(), {"Content-Type": "application/json", "Authorization": f"Bearer {token}"})
         self.calls += 1
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 data = json.load(r)
-            use = data.get("usage") or {}  # unknown usage is never zero: price the request as sent plus 1k out
-            self.spent_usd += use.get("prompt_tokens", len(body) // 3) * PRICE_IN + use.get("completion_tokens", 1024) * PRICE_OUT
-            return data
+            use = data.get("usage")
         except (OSError, ValueError, AttributeError):
-            self.format_errors += 1
+            data = use = None
+        use = use if isinstance(use, dict) else {}
+        num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
+        self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
+        return data
 
     def _parse(self, data, obs):
         calls = data["choices"][0]["message"].get("tool_calls") or []
@@ -79,20 +79,19 @@ class ModelSeat(Seat):
         for a in acts:
             validate_action(self.spec, a)
             keys = a.get("children", [])
-            if a["name"] in ("map", "check") and not keys:
-                raise ValueError("no children")
             if a["name"] == "map":
                 cost = self.types[a["worker_type"]]["credits_per_call"] * len(keys)
-                if not (set(keys) <= set(obs["pending"]) | retry and cost <= obs["budget_left"]["credits"]):
+                if not (keys and set(keys) <= set(obs["pending"]) | retry and cost <= obs["budget_left"]["credits"]):
                     raise ValueError("map must send resendable keys within budget_left")
-            if a["name"] == "check" and not set(keys) <= set(obs["replies"]) - set(obs["checked"]):
-                raise ValueError("check must name replies not yet checked")
+            if a["name"] == "check" and not (keys and set(keys) <= set(obs["replies"]) - set(obs["checked"])
+                                             and len(keys) * CHECK_COST <= obs["budget_left"]["credits"]):
+                raise ValueError("check must name unchecked replies it can pay for")
         if all(a["name"] == "wait" for a in acts):
             raise ValueError("no usable tool call")  # wait alone would spin the runner
         return acts
 
-    def _end(self, obs, alarms):
-        """Stop then report with what it has, so the run ends honestly."""
+    def _end(self, obs):  # stop then report with what it has, so the run ends honestly
         live = sorted(set(obs["pending"]) | {k for k in obs["types"] if k not in obs["replies"]})
+        alarms = sorted({a for r in obs["replies"].values() for a in r.get("alarms", [])})
         return [{"name": "stop", "children": live, "grace_s": 5},
                 {"name": "report", "summary": f"model seat ended with {len(obs['replies'])} replies", "alarms": alarms}]
