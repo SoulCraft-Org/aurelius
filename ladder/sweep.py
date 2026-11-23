@@ -70,7 +70,7 @@ class _Tap:
     def decide(self, obs):
         actions = self.seat.decide(obs)
         if not self.done:  # the first run ends at its report or stop
-            self.lines.append({**self.tag, "obs": obs, "actions": actions})
+            self.lines.append(json.dumps({**self.tag, "obs": obs, "actions": actions}))  # now: obs is a live view
             self.done = any(a["name"] in ("report", "stop") for a in actions)
         return actions
 
@@ -85,7 +85,7 @@ def transcripts(spec, pair, n=SEEDS):
         tap = _Tap(RuleSeat(spec, bar=pair[0], sample=pair[1]), mine, rung=rung, seed=seed, split="dev")
         log = run_once(rung, "rule", spec, seed, model=tap, split="dev")
         reward = next(r["grade"] for r in log if r["kind"] == "final")  # the run's final grade, set when the run ends
-        lines += [json.dumps({**line, "reward": reward}, sort_keys=True) for line in mine]
+        lines += [json.dumps({**json.loads(line), "reward": reward}, sort_keys=True) for line in mine]
     return lines
 
 
