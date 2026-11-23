@@ -67,18 +67,21 @@ Open a fold to see its rows.
 </details>
 
 <details>
-<summary>🧰 Models and stack (8)</summary>
+<summary>🧰 Models and stack (11)</summary>
 
 | Idea we take | Number | Source | Licence |
 |---|---|---|---|
 | Base model to iterate | 262k context | [Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) | Apache-2.0 |
 | Base model to release | 27.8B parameters | [Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) | Apache-2.0 |
-| Open teachers for training data | | [gpt-oss-120b](https://huggingface.co/openai/gpt-oss-120b), [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash), [GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash) | Apache-2.0, MIT, MIT |
-| GRPO with tools; generation runs on a separate vLLM server | v1.18.2 | [TRL AsyncGRPOTrainer](https://huggingface.co/docs/trl/main/en/async_grpo_trainer) | Apache-2.0 |
-| Gym-style training environments | | [OpenEnv](https://github.com/meta-pytorch/OpenEnv) | BSD-3-Clause |
+| Hatchling bake-off, release slot | | [Inkling 2 Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini) | Apache-2.0; links a separate Acceptable Use Policy, read before use |
+| Hatchling bake-off, iterate slot; same architecture as Qwen3.5-9B | | [MiMo-V2.6-Distill-Qwen-9B](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Distill-Qwen-9B) | MIT |
+| Teacher for warm-up examples; GLM-5.3 is the fallback | Terminal-Bench 2.1 90.6 🗣️ | [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash), [GLM-5.3](https://huggingface.co/zai-org/GLM-5.3) | MIT, GLM-5.3 custom licence |
+| Judge for practice runs: a different family from the teacher, outputs explicitly free | | [Nemotron 3 Ultra](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16), [OpenMDW-1.1](https://openmdw.ai/license/1-1/) | OpenMDW-1.1 |
+| GRPO trainer and Gym-style environments; ships a Qwen3.5-9B recipe | | [NeMo RL](https://github.com/NVIDIA-NeMo/RL) | Apache-2.0 |
+| GRPO with tools, the fallback; generation runs on a separate vLLM server | v1.18.2 | [TRL AsyncGRPOTrainer](https://huggingface.co/docs/trl/main/en/async_grpo_trainer) | Apache-2.0 |
 | Agent evals that run in CI | | [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai) | MIT |
-| Managed LoRA training, the fallback | | [Tinker](https://thinkingmachines.ai/tinker/) | service: idea only, no text copied |
-| Closed models bar training a competing model on their outputs, so we use none | | [Anthropic](https://www.anthropic.com/legal/commercial-terms), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) | terms: idea only, no text copied |
+| Closed models bar training a competing model on their outputs, so none writes or grades data | | [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) | terms: idea only, no text copied |
+| No training on outputs without Anthropic's prior authorization | | [Anthropic Usage Policy](https://www.anthropic.com/legal/aup) | terms: idea only, no text copied |
 
 </details>
 
