@@ -20,5 +20,6 @@ jobs:
     uses: SoulCraft-Org/git-crafter/.github/workflows/ci-standard.yml@8023bd4683416f6d420bd20d137960b09c06b91e # v7.0.2
     with:
       short: |
+        python3 -I tools/check_files.py
         python3 -I tools/voice_lint.py --self-test
         git ls-files -z '*.md' | xargs -0 python3 -I tools/voice_lint.py --rules tools/voice_rules.json
