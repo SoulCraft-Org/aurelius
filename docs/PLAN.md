@@ -44,25 +44,29 @@ flowchart LR
 
 ## 🐣 Hatchling
 
+What is left, in run order: [`docs/plans/2026-11-23-hatchling-next.md`](plans/2026-11-23-hatchling-next.md).
+
 | Step | Title | Issue | Status |
 |---|---|---|---|
-| 20 | Fix the map-then-check crash | [#59](https://github.com/SoulCraft-Org/aurelius/issues/59) | ⬜ |
-| 21 | Seed splits, a version stamp, a rates flag | [#61](https://github.com/SoulCraft-Org/aurelius/issues/61) | ⬜ |
-| 21b | Training doc and roadmap match plan 2 | [#62](https://github.com/SoulCraft-Org/aurelius/issues/62) | ⬜ |
-| 21c | The tree in 3D | [#63](https://github.com/SoulCraft-Org/aurelius/issues/63) | ⬜ |
-| 22 | Lair Env: reset, act, reward | [#64](https://github.com/SoulCraft-Org/aurelius/issues/64) | ⬜ |
-| 23 | Any endpoint, locked tool calls, the credit ledger | [#65](https://github.com/SoulCraft-Org/aurelius/issues/65) | ⬜ |
-| 24 | Move 3: sweep the rule seat | [#66](https://github.com/SoulCraft-Org/aurelius/issues/66) | ⬜ |
-| 25 | Serve the student, with the guard | [#67](https://github.com/SoulCraft-Org/aurelius/issues/67) | ⬜ |
-| 26 | Moves 1 + 2: the untrained seat | [#68](https://github.com/SoulCraft-Org/aurelius/issues/68) | ⬜ |
-| 27 | Move 4: evolve the seat prompt | [#69](https://github.com/SoulCraft-Org/aurelius/issues/69) | ⬜ |
-| 28 | The Library | [#70](https://github.com/SoulCraft-Org/aurelius/issues/70) | ⬜ |
-| 29 | Real workers | [#71](https://github.com/SoulCraft-Org/aurelius/issues/71) | ⬜ |
-| 30 | Record real runs, fit the Lair | [#72](https://github.com/SoulCraft-Org/aurelius/issues/72) | ⬜ |
-| 30b | A recorded run, replayed (4D) | [#73](https://github.com/SoulCraft-Org/aurelius/issues/73) | ⬜ |
-| 30c | The viewer (5D) | [#74](https://github.com/SoulCraft-Org/aurelius/issues/74) | ⬜ |
-| 31 | Lessons: the best runs as examples | [#75](https://github.com/SoulCraft-Org/aurelius/issues/75) | ⬜ |
-| 32 | Move 5: LoRA tune, rung 10 then 47 | [#76](https://github.com/SoulCraft-Org/aurelius/issues/76) | ⬜ |
+| 20 | Fix the map-then-check crash | [#59](https://github.com/SoulCraft-Org/aurelius/issues/59) | ✅ |
+| 21 | Seed splits, a version stamp, a rates flag | [#61](https://github.com/SoulCraft-Org/aurelius/issues/61) | ✅ |
+| 21b | Training doc and roadmap match plan 2 | [#62](https://github.com/SoulCraft-Org/aurelius/issues/62) | ✅ |
+| 21c | The tree in 3D | [#63](https://github.com/SoulCraft-Org/aurelius/issues/63) | ✅ |
+| 22 | Lair Env: reset, act, reward | [#64](https://github.com/SoulCraft-Org/aurelius/issues/64) | ✅ |
+| 23 | Any endpoint, locked tool calls, the credit ledger | [#65](https://github.com/SoulCraft-Org/aurelius/issues/65) | ✅ |
+| 24 | Move 3: sweep the rule seat | [#66](https://github.com/SoulCraft-Org/aurelius/issues/66) | ✅ |
+| 25 | Serve the student, with the guard | [#67](https://github.com/SoulCraft-Org/aurelius/issues/67) | ✅ |
+| 26 | Moves 1 + 2: the untrained seat | [#68](https://github.com/SoulCraft-Org/aurelius/issues/68) | 🔨 code merged, run left |
+| 27 | Move 4: evolve the seat prompt | [#69](https://github.com/SoulCraft-Org/aurelius/issues/69) | 🔨 code merged, run left |
+| 28 | The Library | [#70](https://github.com/SoulCraft-Org/aurelius/issues/70) | ✅ |
+| 29 | Real workers | [#71](https://github.com/SoulCraft-Org/aurelius/issues/71) | ✅ |
+| 30 | Record real runs, fit the Lair | [#72](https://github.com/SoulCraft-Org/aurelius/issues/72) | 🔨 code merged, run left |
+| 30b | A recorded run, replayed (4D) | [#73](https://github.com/SoulCraft-Org/aurelius/issues/73) | 🔨 code merged, run left |
+| 30c | The viewer (5D) | [#74](https://github.com/SoulCraft-Org/aurelius/issues/74) | ✅ |
+| 31 | Lessons: the best runs as examples | [#75](https://github.com/SoulCraft-Org/aurelius/issues/75) | 🔨 code merged, run left |
+| 32 | Move 5: LoRA tune, rung 10 then 47 | [#76](https://github.com/SoulCraft-Org/aurelius/issues/76) | 🔨 code merged, run left |
+| 31b | The student's own transcripts (best-of-N) | [#117](https://github.com/SoulCraft-Org/aurelius/issues/117) | ⬜ |
+| 32b | Score a tuned seat: serve a LoRA adapter | [#118](https://github.com/SoulCraft-Org/aurelius/issues/118) | ⬜ |
 | 33 | Move 6: GRPO, only if step 32 stalls | [#77](https://github.com/SoulCraft-Org/aurelius/issues/77) | ⬜ |
 | 34 | Move 7: blend adapters, only with 2 or more | [#78](https://github.com/SoulCraft-Org/aurelius/issues/78) | ⬜ |
 | 35 | The Hatchling gate | [#79](https://github.com/SoulCraft-Org/aurelius/issues/79) | ⬜ |
@@ -84,10 +88,10 @@ Rung sizes: [ladder](ladder.md).
 
 | # | Area | Question | Answer |
 |---|---|---|---|
-| 1 | 🗺️ Tasks | How a goal becomes a task graph, and how small a task should be | [design](design.md) |
-| 2 | 🌳 Hierarchy | How many agents one orchestrator can watch, and when to add a layer | [design](design.md) |
-| 3 | ✅ Review | How to check results at scale: every one, or a sample | [training](training.md), [ladder](ladder.md) |
-| 4 | 💰 Budget | Limits per goal on time, tokens and compute | [design](design.md), [training](training.md) |
-| 5 | 🔁 Failure | When to retry, raise effort, change model or stop | [design](design.md) |
-| 6 | 👀 View | One board that shows the whole at a glance | [design](design.md) |
-| 7 | 🧑 People | Where a person must decide, and how they are asked | [design](design.md) |
+| 1 | 🗺️ Tasks | How a goal becomes a task graph, and how small a task should be | ⬜ |
+| 2 | 🌳 Hierarchy | How many agents one orchestrator can watch, and when to add a layer | ⬜ |
+| 3 | ✅ Review | How to check results at scale: every one, or a sample | ⬜ |
+| 4 | 💰 Budget | Limits per goal on time, tokens and compute | ⬜ |
+| 5 | 🔁 Failure | When to retry, raise effort, change model or stop | ⬜ |
+| 6 | 👀 View | One board that shows the whole at a glance | ⬜ |
+| 7 | 🧑 People | Where a person must decide, and how they are asked | ⬜ |
