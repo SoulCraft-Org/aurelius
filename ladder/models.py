@@ -34,6 +34,7 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0), max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
         self.spent_usd, self.calls, self.asks, self.format_errors, self._cache = 0.0, 0, 0, 0, {}
+        self.errors = {}  # kind -> count: an HTTP status, an exception name or an API error code; never a body or the key
         self.system = ("You are a seat over workers: each pending key needs one reply. Call tools: map keys to one worker type "
                        "(budget = credits_per_call x keys, within budget_left), check a sample of replies, then report. "
                        f"Dial: {json.dumps(spec['dial'])}. Types: {json.dumps(self.types)}.")
@@ -53,8 +54,9 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
                 return self._end(obs)
             try:
                 acts = self._parse(self._post(body), obs)  # a failed call gives None: counted, ended and cached like a bad answer
-            except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+            except (ValueError, TypeError, KeyError, IndexError, AttributeError) as err:
                 self.format_errors += 1
+                self._note(type(err).__name__)
                 acts = self._end(obs)
             self._cache[key] = json.dumps(acts)
         return json.loads(self._cache[key])
@@ -69,12 +71,25 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
             with urllib.request.urlopen(req, timeout=120) as r:
                 data = json.load(r)
             use = data.get("usage")
-        except (OSError, ValueError, AttributeError):
+        except (OSError, ValueError, AttributeError) as err:
+            self._note(f"http_{err.code}" if isinstance(getattr(err, "code", None), int) else type(err).__name__)
             data = use = None
+        if isinstance(data, dict) and isinstance(data.get("error"), dict):
+            code = data["error"].get("code")  # only an integer code: provider text never reaches a public row
+            self._note(f"api_{code}" if isinstance(code, int) and not isinstance(code, bool) else "api_error")
         use = use if isinstance(use, dict) else {}
         num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
         self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
         return data
+
+    def _note(self, kind):
+        kind = str(kind)[:40]
+        self.errors[kind] = self.errors.get(kind, 0) + 1
+
+    def stats(self):
+        """What the seat did, for the score row: no prompt, no answer text, no key."""
+        return {"calls": self.calls, "spent_usd": round(self.spent_usd, 6), "format_errors": self.format_errors,
+                "errors": dict(sorted(self.errors.items()))}
 
     def _parse(self, data, obs):
         calls = data["choices"][0]["message"].get("tool_calls") or []
