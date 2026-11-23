@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from functools import partial
 
 from ladder.metrics import compute
+from ladder.models import MODEL, ModelSeat
 from lair import load_spec
 from lair.baselines import NAMES, PASS_GRADE, run_baseline
 from lair.ledger import Ledger, ResumeMismatch, resume
@@ -33,11 +34,11 @@ def _wrong(items, facts):
 
 class _Leaf:
     """A tier-1 seat: the RuleSeat loop on its own Sim, whose log is its ledger."""
-    def __init__(self, spec, task, items, seed, left):
+    def __init__(self, spec, task, items, seed, left, seat=None):
         self.sim, self.led, self.spec, self.task = Sim(seed), Ledger(), spec, task
         self.led.entries = self.sim.log  # the ledger is the log, so replay checks every row
         self.items, self.left, self.types = {i.key: i for i in items}, left, worker_types(spec)
-        self.seat, self.pending, self.sent = RuleSeat(spec), list(self.items), {}
+        self.seat, self.pending, self.sent = seat or RuleSeat(spec), list(self.items), {}
         self.replies, self.checked, self.tries, self.rounds = {}, {}, {}, 0
         self.sim.at(0, self.step)
 
@@ -123,7 +124,7 @@ def _lift(top, task, spec, by_key, tier, kids, pot):
     return facts, alarms
 
 
-def _rule(task, spec, rung_id, seed, budget):
+def _rule(task, spec, rung_id, seed, budget, seat=None):
     n, span, sizes = len(task.items), spec["tree"]["span"], tree(spec, rung_id)
     by_key, top = {i.key: i for i in task.items}, Sim(seed)
     for it in (i for i in task.items if i.alarm):
@@ -133,7 +134,7 @@ def _rule(task, spec, rung_id, seed, budget):
     for i in range(sizes[0]):
         mine = task.items[i * span:(i + 1) * span]
         share = budget * len(mine) // n
-        make = partial(_Leaf, spec, task, mine, seed * 1_000_003 + i, share)
+        make = partial(_Leaf, spec, task, mine, seed * 1_000_003 + i, share, seat)
         leaf = make()
         leaf.sim.run()
         top.log.extend(leaf.sim.log)
@@ -155,7 +156,7 @@ def _rule(task, spec, rung_id, seed, budget):
     return top.log
 
 
-def run_once(rung_id, seat, spec, seed, kind="table", budget=None):
+def run_once(rung_id, seat, spec, seed, kind="table", budget=None, model=None):
     """One run log. Every seat, rule or baseline, gets 5 credits per agent: a call and a check.
 
     In sim, resume_rate is a determinism check: a resume replays from the seed, so it matches
@@ -163,23 +164,27 @@ def run_once(rung_id, seat, spec, seed, kind="table", budget=None):
     """
     agents = _rung(spec, rung_id)["agents"]
     task, budget = make_task(seed, agents, kind), 5 * agents if budget is None else budget
-    if seat == "rule":
-        return _rule(task, spec, rung_id, seed, budget)
+    if seat == "model" and rung_id not in ("r10", "r47"):
+        raise ValueError("the model seat runs on r10 and r47 only")
+    if seat in ("rule", "model"):
+        return _rule(task, spec, rung_id, seed, budget, model or (ModelSeat(spec) if seat == "model" else None))
     return run_baseline(seat, task, spec, seed, budget)
 
 
 def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
     """The spec's score row for a seat on a rung, with the 8 metrics over all seeds."""
+    spec = load_spec()
+    model = ModelSeat(spec) if seat == "model" else None  # one seat for every seed: one shared cap
     return {"date": datetime.now(timezone.utc).date().isoformat(),
-            "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
-            "workers": "sim", "seed": list(seeds), "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind) for s in seeds])}
+            "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat, **({"model": MODEL} if model else {}),
+            "workers": "sim", "seed": list(seeds), "metrics": compute([run_once(rung_id, seat, spec, s, kind, model) for s in seeds])}
 
 
 def parse_args(argv=None):
     """The command line: which rung, which seat, how many seeds (0 to N-1)."""
     p = argparse.ArgumentParser(prog="python3 -m ladder.run", description="Print a seat's score row as JSON.")
     p.add_argument("--rung", required=True, choices=[r["id"] for r in load_spec()["rungs"]])
-    p.add_argument("--seat", required=True, choices=["rule", *NAMES])
+    p.add_argument("--seat", required=True, choices=["rule", "model", *NAMES])
     p.add_argument("--seeds", type=int, default=3, help="number of seeds, run as 0 to N-1")
     p.add_argument("--kind", choices=KINDS, default="table")
     return p.parse_args(argv)
