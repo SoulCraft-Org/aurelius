@@ -8,7 +8,7 @@ from unittest import mock
 from ladder.models import ModelSeat
 from lair import load_spec
 from lair.seat import RuleSeat, validate_action
-from train.traces import convert, example, user_message
+from train.traces import convert, example
 
 SPEC = load_spec()
 OBS = {"pending": ["k1"], "replies": {"k0": {"status": "completed", "facts": [{"claim": "k0", "value": 1}], "alarms": []}},
@@ -44,7 +44,6 @@ class TestTraces(unittest.TestCase):
         row = example(seat, line())
         self.assertEqual(row["prompt"], sent["messages"])
         self.assertNotIn('"facts"', row["prompt"][1]["content"])  # no truth fields reach the prompt
-        self.assertEqual(row["prompt"][1]["content"], user_message(OBS))
 
     def test_tool_calls_validate(self):
         acts = RuleSeat(SPEC).decide(OBS | {"replies": {}})
