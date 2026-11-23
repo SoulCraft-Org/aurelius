@@ -6,6 +6,7 @@ import os
 import sys
 import tempfile
 import time
+import types
 import unittest
 from unittest import mock
 
@@ -37,11 +38,12 @@ class TestGepaAdapter(unittest.TestCase):
 
     def test_a_candidate_goes_in_and_a_reward_comes_out_with_no_truth_in_the_reflection_data(self):
         with mock.patch.object(self.g, "ModelSeat", FakeSeat):
-            got = self.ad.evaluate([0, 1], {"prompt": "Go. {dial}"}, capture_traces=True)
-            self.ad.evaluate([0], {"prompt": "Stop."})
-        self.assertTrue(len(got.scores) == 2 and all(0 <= s <= 1 for s in got.scores))
-        rows = self.ad.rows()
-        self.assertEqual([r["generation"] for r in rows], [0, 1])
+            got = self.ad.evaluate(self.g.PARETO, {"prompt": "Go. {dial}"}, capture_traces=True)
+            self.ad.evaluate(self.g.PARETO, {"prompt": "Stop."})
+            self.ad.evaluate([0, 1], {"prompt": "Seen on two seeds only."})
+        self.assertTrue(len(got.scores) == 8 and all(0 <= s <= 1 for s in got.scores))
+        rows = self.ad.rows()  # the third candidate did not run on every PARETO seed, so it is no generation
+        self.assertEqual([(r["generation"], r["seed"]) for r in rows], [(0, self.g.PARETO), (1, self.g.PARETO)])
         self.assertNotEqual(rows[0]["stamp"]["prompt"], rows[1]["stamp"]["prompt"])  # the stamp hashes the candidate
         text = json.dumps(self.ad.make_reflective_dataset({}, got, ["prompt"]))
         self.assertTrue("reward" in text and "pending" in text)
@@ -62,7 +64,7 @@ class TestGepaAdapter(unittest.TestCase):
         with mock.patch.object(guard, "ensure", side_effect=lambda *a: self.calls.append("ensure")) as ensure:
             self.g.main()
         self.assertEqual(self.calls, ["ensure", "remote"])
-        self.assertEqual(ensure.call_args.args, (guard.worst_usd(1500, self.g.serve.GPU_USD_H), self.g.serve.LEDGER))
+        self.assertEqual(ensure.call_args.args, (guard.worst_usd(1500 + self.g.serve.BOOT_S, self.g.serve.GPU_USD_H), self.g.serve.LEDGER))
         with open(self.g.serve.LEDGER, encoding="utf-8") as f:
             self.assertEqual(json.loads(f.read())["seconds"], 10.0 + self.g.serve.BOOT_S)
 
@@ -70,3 +72,20 @@ class TestGepaAdapter(unittest.TestCase):
         default = ModelSeat(SPEC)
         with mock.patch.dict(os.environ, {"SEAT_PROMPT_FILE": str(self.g.PROMPT)}):
             self.assertEqual((ModelSeat(SPEC).system, ModelSeat(SPEC).prompt), (default.system,) * 2)
+
+    def test_the_reflection_input_and_the_candidate_are_capped_and_an_empty_reply_keeps_the_parent(self):
+        runs = [{"seed": k, "reward": 0.5, "steps": [{"obs": "x" * 900, "actions": []}] * 50} for k in range(3)]
+        got = self.ad.make_reflective_dataset({}, types.SimpleNamespace(trajectories=runs), ["prompt"])["prompt"]
+        self.assertTrue(all(len(r["Generated Outputs"]) <= self.g.MAX_STEPS for r in got))
+        self.assertLessEqual(len(json.dumps(got)), self.g.REFLECT_CHARS + 1000)
+        for reply, want in (("", "P"), (" \n ", "P"), ("```\n \n```", "P"), ("y" * (self.g.MAX_PROMPT + 1), "P"), ("```text\nBetter {dial}\n```", "Better {dial}"), ("Plain", "Plain")):
+            ad = self.g.SeatAdapter(SPEC, 0, lambda ask, reply=reply: reply)
+            self.assertEqual(ad.propose_new_texts({"prompt": "P"}, {"prompt": got}, ["prompt"]), {"prompt": want})
+
+    def test_when_optimize_raises_the_finished_generations_are_kept(self):
+        def optimize(**kw):
+            with mock.patch.object(self.g, "ModelSeat", FakeSeat):
+                kw["adapter"].evaluate(self.g.PARETO, kw["seed_candidate"])
+            raise RuntimeError("boom")
+        out = self.g.evolve("Seed {dial}", self.ad, 0, optimize)
+        self.assertEqual((out["best"], len(out["rows"]), out["error"]), ("Seed {dial}", 1, "RuntimeError"))

@@ -1,6 +1,7 @@
 """Evolve the seat prompt with GEPA (MIT) on Modal behind the spend guard (#69, refs #60); the served student (Apache-2.0) also reflects."""
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -22,14 +23,17 @@ from train import serve  # noqa: E402  (its image, constants and vLLM wait; serv
 
 TIMEOUT_S, MAX_CALLS, WORKERS, ROUNDS, RUNG = 1500, 80, 4, 40, "r10"  # 25 minute hard stop; episodes GEPA may score; vLLM's --max-num-seqs
 TRAIN, PARETO = list(range(8)), list(range(8, 16))  # dev seeds: GEPA reflects on the first, picks among candidates on the second
+MAX_STEPS, REFLECT_CHARS, MAX_PROMPT = 6, 18000, 4000  # steps shown per episode; reflection input (about 6000 tokens at 3 characters each); candidate length
+ASK = ("You improve the system prompt of a seat that sends tasks to workers, checks their replies and reports. Below are the current prompt and "
+       "episodes with their rewards. Write a better prompt and keep {dial} and {types} in it. Reply with the new prompt alone in one ``` block.\n\n")
 URL, PROMPT = f"http://localhost:{serve.PORT}/v1/chat/completions", ROOT / "spec" / "prompts" / "seat.txt"
 app = modal.App("aurelius-gepa")
 image = serve.image.add_local_python_source("train")
 
 
 class SeatAdapter:  # GEPA's adapter: a candidate is {"prompt": text}, a data instance a dev seed, a score the share of items right
-    def __init__(self, spec, deadline):
-        self.spec, self.deadline, self.log = spec, deadline, {}
+    def __init__(self, spec, deadline, reflect=None):
+        self.spec, self.deadline, self.reflect, self.log = spec, deadline, reflect, {}
 
     def evaluate(self, batch, candidate, capture_traces=False):
         check_split(self.spec, "dev", batch)  # a val or test seed never reaches the seat
@@ -61,19 +65,47 @@ class SeatAdapter:  # GEPA's adapter: a candidate is {"prompt": text}, a data in
         return {"seed": seed, "steps": steps, "reward": env.reward(), "stamp": stamp(self.spec, "model", seat)}
 
     def make_reflective_dataset(self, candidate, eval_batch, components_to_update):
-        recs = [{"Inputs": {"seed": t["seed"]}, "Generated Outputs": t["steps"], "Feedback": f"reward {t['reward']:.2f} of 1, the share of items right"}
-                for t in eval_batch.trajectories]
+        per, recs = REFLECT_CHARS // max(len(eval_batch.trajectories), 1), []  # characters an episode may take of the reflection input
+        for t in eval_batch.trajectories:
+            steps = t["steps"][:MAX_STEPS]
+            while steps and len(json.dumps(steps)) > per:
+                steps.pop()
+            recs.append({"Inputs": {"seed": t["seed"]}, "Generated Outputs": steps, "Feedback": f"reward {t['reward']:.2f} of 1, the share of items right"})
         return {name: recs for name in components_to_update}
 
-    def rows(self):  # one score row per generation: each prompt GEPA tried, in order, on the dev seeds it saw
-        mean = lambda e: sum(sum(r) / len(r) for r in e["by_seed"].values()) / len(e["by_seed"])
-        return [{"generation": i, "split": "dev", "mean_reward": round(mean(e), 4), "stamp": e["stamp"]} for i, e in enumerate(self.log.values())]
+    def propose_new_texts(self, candidate, reflective_dataset, components_to_update):
+        parent = candidate["prompt"]
+        reply = self.reflect(ASK + "Current prompt:\n```\n" + parent + "\n```\n\nEpisodes:\n" + json.dumps(reflective_dataset["prompt"]))
+        found = re.search(r"```(?:\w*\n)?(.*?)```", reply, re.S)
+        new = (found.group(1) if found else reply).strip()
+        return {"prompt": new if new and len(new) <= MAX_PROMPT else parent}  # an empty or over-long reply keeps the parent
+
+    def _scored(self):  # (prompt, mean reward, stamp) of each candidate that ran on every PARETO seed, in order: the same seeds for all
+        mean = lambda e: sum(sum(e["by_seed"][k]) / len(e["by_seed"][k]) for k in PARETO) / len(PARETO)
+        return [(p, mean(e), e["stamp"]) for p, e in self.log.items() if all(k in e["by_seed"] for k in PARETO)]
+
+    def rows(self):  # one score row per generation
+        return [{"generation": i, "split": "dev", "seed": PARETO, "mean_reward": round(m, 4), "stamp": st} for i, (_, m, st) in enumerate(self._scored())]
+
+    def best(self):
+        return max(self._scored(), key=lambda x: x[1], default=(None,))[0]
 
 
 def reflect(prompt):  # GEPA's reflection_lm: text in, text out, from the same served student
     body = json.dumps({"model": serve.MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7, "max_tokens": 1024})
     with urllib.request.urlopen(urllib.request.Request(URL, body.encode(), {"Content-Type": "application/json"}), timeout=120) as r:
         return json.load(r)["choices"][0]["message"]["content"] or ""
+
+
+def evolve(seed_prompt, adapter, deadline, optimize):  # GEPA's loop; if it raises, the generations it finished are kept
+    best, error = None, None
+    try:
+        best = optimize(seed_candidate={"prompt": seed_prompt}, trainset=TRAIN, valset=PARETO, adapter=adapter, max_metric_calls=MAX_CALLS,
+                        reflection_minibatch_size=3, seed=0, raise_on_exception=False,  # False: a timeout keeps the rows
+                        stop_callbacks=lambda state: time.monotonic() > deadline).best_candidate["prompt"]
+    except Exception as err:
+        error = type(err).__name__
+    return {"best": best or adapter.best(), "rows": adapter.rows(), **({"error": error} if error else {})}
 
 
 @app.function(image=image, gpu=serve.GPU, timeout=TIMEOUT_S, max_containers=1, scaledown_window=2, single_use_containers=True)
@@ -87,11 +119,7 @@ def run_gepa(seed_prompt):
     out, error, deadline = {}, None, t0 + TIMEOUT_S - 300  # no episode starts past it: Modal's hard stop would drop every row
     try:  # no terminate: the container is single use and ends with this call
         serve._wait(subprocess.Popen(cmd), t0)
-        adapter = SeatAdapter(load_spec(), deadline)
-        res = optimize(seed_candidate={"prompt": seed_prompt}, trainset=TRAIN, valset=PARETO, adapter=adapter, reflection_lm=reflect,
-                       max_metric_calls=MAX_CALLS, reflection_minibatch_size=3, seed=0, raise_on_exception=False,  # False: a timeout keeps the rows
-                       stop_callbacks=lambda state: time.monotonic() > deadline)
-        out = {"best": res.best_candidate["prompt"], "rows": adapter.rows()}
+        out = evolve(seed_prompt, SeatAdapter(load_spec(), deadline, reflect), deadline, optimize)
     except Exception as err:  # the GPU time was spent: return it, so the ledger records it
         error = type(err).__name__
     return {**out, "gpu_seconds": round(time.monotonic() - t0, 1), **({"error": error} if error else {})}
@@ -101,7 +129,7 @@ def main():
     from ladder import spend
     from train import guard
     try:
-        guard.ensure(guard.worst_usd(TIMEOUT_S, serve.GPU_USD_H), serve.LEDGER)
+        guard.ensure(guard.worst_usd(TIMEOUT_S + serve.BOOT_S, serve.GPU_USD_H), serve.LEDGER)
     except guard.Refused as err:
         sys.exit(f"refused: {err}")
     run_id, start, result = f"{datetime.now(timezone.utc):%Y-%m-%dT%H%M%SZ}-gepa", time.monotonic(), None
