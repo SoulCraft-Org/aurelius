@@ -21,12 +21,21 @@ def _pct(part, whole):
 
 
 def _growth(run_logs):
-    ratios = []
+    """Mean over tiers of the smoothed wrong-fact rate out over rate in.
+
+    Report rows are pooled per tier (counts summed). Each rate adds one wrong
+    fact and two facts (add-one smoothing), so zero counts never divide by zero
+    and a tier that turns clean input into wrong output still scores above 1.
+    """
+    tiers = {}
     for r in _rows(run_logs, "report"):
-        if not (r["facts_in"] and r["wrong_in"] and r["facts_out"]):
-            continue
-        ratios.append((r["wrong_out"] / r["facts_out"]) / (r["wrong_in"] / r["facts_in"]))
-    return sum(ratios) / len(ratios) if ratios else None
+        t = tiers.setdefault(r["tier"], [0, 0, 0, 0])
+        for i, k in enumerate(("facts_in", "wrong_in", "facts_out", "wrong_out")):
+            t[i] += r[k]
+    growth = [
+        ((wo + 1) / (fo + 2)) / ((wi + 1) / (fi + 2)) for fi, wi, fo, wo in tiers.values()
+    ]
+    return sum(growth) / len(growth) if growth else None
 
 
 def _alarms(run_logs):

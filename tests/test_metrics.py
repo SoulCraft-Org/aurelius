@@ -39,19 +39,28 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(out["verified_success"], 0.0)
         self.assertIsNone(out["cost_per_verified_success"])
 
-    def test_error_growth(self):
-        logs = [[
-            row("report", tier=1, facts_in=10, wrong_in=1, facts_out=10, wrong_out=2),
-            row("report", tier=2, facts_in=20, wrong_in=2, facts_out=10, wrong_out=3),
-            row("report", tier=2, facts_in=0, wrong_in=0, facts_out=5, wrong_out=1),
-            row("report", tier=2, facts_in=10, wrong_in=0, facts_out=5, wrong_out=1),
-        ]]
-        self.assertAlmostEqual(compute(logs)["error_growth_per_tier"], 2.5)
+    def test_error_growth_new_errors_count(self):
+        rep = row("report", tier=1, facts_in=10, wrong_in=0, facts_out=10, wrong_out=2)
+        self.assertAlmostEqual(compute([[rep]])["error_growth_per_tier"], 3.0)
 
-    def test_error_growth_none_when_all_skipped(self):
-        zero = row("report", tier=1, facts_in=0, wrong_in=0, facts_out=4, wrong_out=1)
-        self.assertIsNone(compute([[zero]])["error_growth_per_tier"])
-        self.assertIsNone(compute([[]])["error_growth_per_tier"])
+    def test_error_growth_clean_is_one(self):
+        rep = row("report", tier=1, facts_in=8, wrong_in=0, facts_out=8, wrong_out=0)
+        self.assertEqual(compute([[rep]])["error_growth_per_tier"], 1.0)
+
+    def test_error_growth_pools_a_tier(self):
+        a = row("report", tier=1, facts_in=4, wrong_in=1, facts_out=4, wrong_out=0)
+        b = row("report", tier=1, facts_in=6, wrong_in=1, facts_out=6, wrong_out=3)
+        # pooled: in 10 facts, 2 wrong; out 10 facts, 3 wrong -> (4/12) / (3/12)
+        self.assertAlmostEqual(compute([[a], [b]])["error_growth_per_tier"], 4 / 3)
+
+    def test_error_growth_means_over_tiers(self):
+        a = row("report", tier=1, facts_in=10, wrong_in=0, facts_out=10, wrong_out=2)
+        b = row("report", tier=2, facts_in=10, wrong_in=0, facts_out=10, wrong_out=0)
+        self.assertAlmostEqual(compute([[a, b]])["error_growth_per_tier"], 2.0)
+
+    def test_error_growth_none_without_reports(self):
+        self.assertIsNone(compute([[final(True)]])["error_growth_per_tier"])
+        self.assertIsNone(compute([])["error_growth_per_tier"])
 
     def test_alarms_reaching_top(self):
         logs = [
