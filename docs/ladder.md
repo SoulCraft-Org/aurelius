@@ -2,7 +2,7 @@
 
 The Lair simulates workers on a CPU. The Ladder scores a seat on the Lair, rung by rung.
 
-> 🚧 **No score exists yet.** This page sets the rules. Every number below is a spec value, marked assumed until real runs replace it.
+> 🚧 **No score exists yet.** Numbers come from the spec or the cited sources. Spec rates marked assumed stay so until real runs replace them.
 
 Sources: [`spec/aurelius.json`](../spec/aurelius.json) and [`docs/sources.md`](sources.md), both read 2026-11-22.
 
@@ -58,7 +58,7 @@ Source: `spec/aurelius.json`, `baselines`, read 2026-11-22.
 
 ## 🚪 Gates
 
-Each rung's targets come from the Egg's baseline numbers. We do not guess them now.
+Each rung's targets come from the Egg's baseline numbers: the Egg, the first stage, is when the Lair and Ladder run with untrained seats and fixed baselines. We do not guess them now.
 
 | Step | Target |
 |---|---|
