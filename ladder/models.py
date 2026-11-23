@@ -26,8 +26,10 @@ def tools(spec):  # the spec's 5 actions as function schemas
 
 
 class ModelSeat(Seat):  # asks the model each round; the key is read per call, never stored
-    def __init__(self, spec, cap_usd=1.0, max_calls=200):
-        self.spec, self.cap_usd, self.max_calls = spec, cap_usd, max_calls
+    def __init__(self, spec, cap_usd=None, max_calls=200):
+        # MODEL_CAP_USD lets a workflow split one total cap across rungs; it can only lower the $1 ceiling.
+        cap = cap_usd if cap_usd is not None else float(os.environ.get("MODEL_CAP_USD", "1.0"))
+        self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0), max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
         self.spent_usd, self.calls, self.asks, self.format_errors, self._cache = 0.0, 0, 0, 0, {}
         self.system = ("You are a seat over workers: each pending key needs one reply. Call tools: map keys to one worker type "

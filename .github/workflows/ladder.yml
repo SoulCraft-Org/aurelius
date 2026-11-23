@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       seats:
-        description: "Seats, comma separated: rule, one_agent, flat_fan_out, cheapest_that_passes"
+        description: "Seats, comma separated: rule, one_agent, flat_fan_out, cheapest_that_passes, model (r10 and r47 only)"
         default: "rule,one_agent,flat_fan_out,cheapest_that_passes"
         type: string
       rungs:
@@ -39,19 +39,29 @@ jobs:
           SEATS: ${{ inputs.seats }}
           RUNGS: ${{ inputs.rungs }}
           PYTHONHASHSEED: "0"
+          # Only the model seat's runs get the key (see the loop); every other seat runs without it.
+          ROUTER_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set -euo pipefail
-          allowed_seats=" rule one_agent flat_fan_out cheapest_that_passes "
+          set -f
+          allowed_seats=" rule one_agent flat_fan_out cheapest_that_passes model "
           allowed_rungs=" r10 r47 r2209 r103823 "
           seats=${SEATS//,/ }
           rungs=${RUNGS//,/ }
-          [ -n "${seats// /}" ] && [ -n "${rungs// /}" ] || { echo "seats and rungs must not be empty" >&2; exit 1; }
+          [ -n "${seats//[[:space:]]/}" ] && [ -n "${rungs//[[:space:]]/}" ] || { echo "seats and rungs must not be empty" >&2; exit 1; }
           for s in $seats; do
             case "$allowed_seats" in *" $s "*) ;; *) echo "unknown seat: not in the allow-list" >&2; exit 1 ;; esac
           done
           for r in $rungs; do
             case "$allowed_rungs" in *" $r "*) ;; *) echo "unknown rung: not in the allow-list" >&2; exit 1 ;; esac
           done
+          # The model seat costs money: r10 and r47 only, and one $1 ceiling split across the rungs it runs on.
+          model_rungs=0
+          case " $seats " in *" model "*)
+            for r in $rungs; do
+              case "$r" in r10|r47) model_rungs=$((model_rungs + 1)) ;; *) echo "the model seat runs on r10 and r47 only" >&2; exit 1 ;; esac
+            done ;;
+          esac
           rows="$RUNNER_TEMP/rows"
           mkdir -p "$rows"
           n=0
@@ -60,7 +70,13 @@ jobs:
             [ "$r" = r103823 ] && seeds=1
             for s in $seats; do
               n=$((n + 1))
-              python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$rows/$(printf '%03d' "$n").json"
+              out="$rows/$(printf '%03d' "$n").json"
+              if [ "$s" = model ]; then
+                cap=$(python3 -I -c "import sys; print(1.0 / int(sys.argv[1]))" "$model_rungs")
+                OPENROUTER_API_KEY="$ROUTER_KEY" MODEL_CAP_USD="$cap" python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$out"
+              else
+                python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$out"
+              fi
             done
           done
           python3 -I - "$rows" scores.json <<'PY'
