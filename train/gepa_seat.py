@@ -1,6 +1,5 @@
 """Evolve the seat prompt with GEPA (MIT) on Modal behind the spend guard (#69, refs #60); the served student (Apache-2.0) also reflects."""
 
-import collections
 import json
 import os
 import subprocess
@@ -17,7 +16,7 @@ import modal
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from ladder.env import LairEnv  # noqa: E402
-from ladder.models import ModelSeat, render  # noqa: E402
+from ladder.models import ModelSeat, render, view  # noqa: E402
 from ladder.run import check_split, stamp  # noqa: E402
 from lair import load_spec  # noqa: E402
 from train import serve  # noqa: E402  (its image, constants and vLLM wait; serve.py is not edited)
@@ -37,19 +36,18 @@ class SeatAdapter:
 
     def evaluate(self, batch, candidate, capture_traces=False):
         check_split(self.spec, "dev", batch)  # a val or test seed never reaches the seat
-        seats = [ModelSeat(self.spec, max_calls=12) for _ in batch]  # one per episode: its own cap and cache
-        for seat in seats:
-            seat.system = seat.prompt = render(candidate["prompt"], self.spec, seat.types)
         with ThreadPoolExecutor(WORKERS) as pool:  # vLLM batches the concurrent calls
-            runs = list(pool.map(self._episode, batch, seats))
-        entry = self.log.setdefault(candidate["prompt"], {"stamp": stamp(self.spec, "model", seats[0]), "by_seed": {}})
-        for seed, (reward, _) in zip(batch, runs):
-            entry["by_seed"].setdefault(seed, []).append(reward)
-        rewards = [reward for reward, _ in runs]  # the fields of gepa's EvaluationBatch, so this file imports without gepa
-        return types.SimpleNamespace(outputs=rewards, scores=rewards, trajectories=[t for _, t in runs] if capture_traces else None,
+            runs = list(pool.map(lambda seed: self._episode(seed, candidate["prompt"]), batch))
+        entry = self.log.setdefault(candidate["prompt"], {"stamp": runs[0]["stamp"], "by_seed": {}})
+        for run in runs:
+            entry["by_seed"].setdefault(run["seed"], []).append(run["reward"])
+        rewards = [run["reward"] for run in runs]  # the fields of gepa's EvaluationBatch, so this file imports without gepa
+        return types.SimpleNamespace(outputs=rewards, scores=rewards, trajectories=runs if capture_traces else None,
                                      objective_scores=None, num_metric_calls=None)
 
-    def _episode(self, seed, seat):  # obs in, actions out; env.log, the truth, is never read
+    def _episode(self, seed, prompt):  # obs in, actions out; env.log, the truth, is never read
+        seat = ModelSeat(self.spec, max_calls=12)  # one per episode: its own cap and cache
+        seat.system = seat.prompt = render(prompt, self.spec, seat.types)
         env, steps = LairEnv(self.spec), []
         obs = env.reset(RUNG, seed, split="dev")
         try:
@@ -57,14 +55,13 @@ class SeatAdapter:
                 if time.monotonic() > self.deadline:
                     raise TimeoutError("out of time")
                 acts = seat.decide(obs)
-                steps.append({"pending": len(obs["pending"]), "replies": dict(collections.Counter(r["status"] for r in obs["replies"].values())),
-                              "budget_left": obs["budget_left"]["credits"], "actions": [{**a, "children": len(a.get("children", []))} for a in acts]})
+                steps.append({"obs": view(obs), "actions": acts})
                 obs, done = env.act(acts)
                 if done:
                     break
         except ValueError as err:  # the Env refused the list: the episode ends as it stands
             steps.append({"refused": str(err)[:100]})
-        return env.reward(), {"seed": seed, "steps": steps, "reward": env.reward()}
+        return {"seed": seed, "steps": steps, "reward": env.reward(), "stamp": stamp(self.spec, "model", seat)}
 
     def make_reflective_dataset(self, candidate, eval_batch, components_to_update):
         recs = [{"Inputs": {"seed": t["seed"]}, "Generated Outputs": t["steps"], "Feedback": f"reward {t['reward']:.2f} of 1, the share of items right"}
@@ -90,10 +87,9 @@ def run_gepa(seed_prompt):
     cmd = (f"vllm serve {serve.MODEL} --revision {serve.REVISION} --served-model-name {serve.MODEL} --host 127.0.0.1 --port {serve.PORT} "
            f"--max-model-len 16384 --max-num-seqs {WORKERS} --gpu-memory-utilization 0.90 --language-model-only --enforce-eager "
            "--enable-auto-tool-choice --tool-call-parser qwen3_coder").split() + ["--default-chat-template-kwargs", '{"enable_thinking": false}']  # serve.run_jobs's
-    proc, out, error, deadline = None, {}, None, t0 + TIMEOUT_S - 300  # no episode starts past it: Modal's hard stop would drop every row
-    try:
-        proc = subprocess.Popen(cmd)
-        serve._wait(proc, t0)
+    out, error, deadline = {}, None, t0 + TIMEOUT_S - 300  # no episode starts past it: Modal's hard stop would drop every row
+    try:  # no terminate: the container is single use and ends with this call
+        serve._wait(subprocess.Popen(cmd), t0)
         adapter = SeatAdapter(load_spec(), deadline)
         res = optimize(seed_candidate={"prompt": seed_prompt}, trainset=TRAIN, valset=PARETO, adapter=adapter, reflection_lm=reflect,
                        max_metric_calls=MAX_CALLS, reflection_minibatch_size=3, seed=0, raise_on_exception=False,  # False: a timeout keeps the rows
@@ -101,9 +97,6 @@ def run_gepa(seed_prompt):
         out = {"best": res.best_candidate["prompt"], "rows": adapter.rows()}
     except Exception as err:  # the GPU time was spent: return it, so the ledger records it
         error = type(err).__name__
-    finally:
-        if proc:
-            proc.terminate()  # the container is single use and ends with this call
     return {**out, "gpu_seconds": round(time.monotonic() - t0, 1), **({"error": error} if error else {})}
 
 

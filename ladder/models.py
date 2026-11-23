@@ -29,6 +29,10 @@ def tools(spec):  # the spec's 5 actions as function schemas
         "required": [n for n in a["args"] if n not in OPTIONAL]}}} for a in spec["actions"]]
 
 
+def view(obs):  # what the model sees: each reply's status and alarms, never its facts or values
+    return {**obs, "replies": {k: {"status": r["status"], "alarms": r.get("alarms", [])} for k, r in obs["replies"].items()}}
+
+
 def render(text, spec, types):  # a prompt file's text with the spec's dial and worker types filled in
     return text.rstrip("\n").replace("{dial}", json.dumps(spec["dial"])).replace("{types}", json.dumps(types))
 
@@ -63,13 +67,12 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         self.prompt = self.system  # the score stamp hashes it
 
     def decide(self, obs):
-        view = {**obs, "replies": {k: r["status"] for k, r in obs["replies"].items()}}
         self.asks += 1  # cached answers are free but not endless: a seat that loops on one is cut off
         if self.asks > 5 * self.max_calls:
             return self._end(obs)
         req = {"model": self.model, "temperature": 0, "max_tokens": MAX_TOKENS, "tools": self.tools,
                "messages": [{"role": "system", "content": self.system},
-                            {"role": "user", "content": json.dumps(view, sort_keys=True, separators=(",", ":"))}]}
+                            {"role": "user", "content": json.dumps(view(obs), sort_keys=True, separators=(",", ":"))}]}
         if self.openrouter:
             req["provider"] = PROVIDER  # OpenRouter's routing block: no other server gets it
         if self.lock:
