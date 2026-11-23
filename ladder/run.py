@@ -36,10 +36,11 @@ def _wrong(items, facts):
 
 class _Leaf:
     """A tier-1 seat: the RuleSeat loop on its own Sim, whose log is its ledger."""
-    def __init__(self, spec, task, items, seed, left, seat=None):
-        self.sim, self.led, self.spec, self.task = Sim(seed), Ledger(), spec, task
+    def __init__(self, spec, task, items, seed, left, seat=None, world=None):
+        """The seat reads spec; the workers and the check run in world (default spec)."""
+        self.sim, self.led, self.spec, self.task = Sim(seed), Ledger(), world or spec, task
         self.led.entries = self.sim.log  # the ledger is the log, so replay checks every row
-        self.items, self.left, self.types = {i.key: i for i in items}, left, worker_types(spec)
+        self.items, self.left, self.types = {i.key: i for i in items}, left, worker_types(self.spec)
         self.seat, self.pending, self.sent = seat or RuleSeat(spec), list(self.items), {}
         self.replies, self.checked, self.tries, self.rounds = {}, {}, {}, 0
         self.sim.at(0, self.step)
@@ -127,7 +128,7 @@ def _lift(top, task, spec, by_key, tier, kids, pot):
     return facts, alarms
 
 
-def _rule(task, spec, rung_id, seed, budget, seat=None):
+def _rule(task, spec, rung_id, seed, budget, seat=None, world=None):
     n, span, sizes = len(task.items), spec["tree"]["span"], tree(spec, rung_id)
     by_key, top = {i.key: i for i in task.items}, Sim(seed)
     for it in (i for i in task.items if i.alarm):
@@ -137,7 +138,7 @@ def _rule(task, spec, rung_id, seed, budget, seat=None):
     for i in range(sizes[0]):
         mine = task.items[i * span:(i + 1) * span]
         share = budget * len(mine) // n
-        make = partial(_Leaf, spec, task, mine, seed * 1_000_003 + i, share, seat)
+        make = partial(_Leaf, spec, task, mine, seed * 1_000_003 + i, share, seat, world)
         leaf = make()
         leaf.sim.run()
         top.log.extend(leaf.sim.log)
@@ -148,7 +149,7 @@ def _rule(task, spec, rung_id, seed, budget, seat=None):
             top.record("resume", seat=f"t1-{i}", same=_same_after_kill(make, leaf))
     top.now, pot = end, [budget - spent]
     for tier in range(2, len(sizes) + 1):
-        seats = [_lift(top, task, spec, by_key, tier, seats[j:j + span], pot)
+        seats = [_lift(top, task, world or spec, by_key, tier, seats[j:j + span], pot)
                  for j in range(0, len(seats), span)]
     facts, alarms = seats[0]
     for key in alarms:
@@ -159,19 +160,21 @@ def _rule(task, spec, rung_id, seed, budget, seat=None):
     return top.log
 
 
-def run_once(rung_id, seat, spec, seed, kind="table", budget=None, model=None):
+def run_once(rung_id, seat, spec, seed, kind="table", budget=None, model=None, split="dev", world=None):
     """One run log. Every seat, rule or baseline, gets 5 credits per agent: a call and a check.
 
     In sim, resume_rate is a determinism check: a resume replays from the seed, so it matches
     unless the run is not deterministic. It says nothing about real workers until they are live.
+    Seats and baselines read spec; the workers and the check run in world (default spec).
     """
+    check_split(spec, split, [seed])
     agents = _rung(spec, rung_id)["agents"]
     task, budget = make_task(seed, agents, kind), 5 * agents if budget is None else budget
     if seat == "model" and rung_id not in ("r10", "r47"):
         raise ValueError("the model seat runs on r10 and r47 only")
     if seat in ("rule", "model"):
-        return _rule(task, spec, rung_id, seed, budget, model or (ModelSeat(spec) if seat == "model" else None))
-    return run_baseline(seat, task, spec, seed, budget)
+        return _rule(task, spec, rung_id, seed, budget, model or (ModelSeat(spec) if seat == "model" else None), world)
+    return run_baseline(seat, task, spec, seed, budget, world)
 
 
 RATES_LIMIT = 0.5  # --rates runs from -0.5 to 0.5
@@ -205,10 +208,13 @@ def _hash(text):
 
 
 def stamp(spec, seat, model=None):
-    """The version stamp on a score row. The spec hash covers the spec as written, before --rates."""
+    """The version stamp on a score row. The spec hash covers the spec as written, before --rates.
+
+    A later step fills revision, adapter and prompt by setting those attributes on the seat.
+    """
     canon = json.dumps(spec, sort_keys=True, separators=(",", ":"))
-    return {"spec": _hash(canon), "seat": seat, "model": MODEL if model else None, "revision": None,
-            "adapter": None, "prompt": _hash(model.system) if model else None}
+    return {"spec": _hash(canon), "seat": seat, "model": getattr(model, "model", MODEL) if model else None,
+            **{k: getattr(model, k, None) for k in ("revision", "adapter", "prompt")}}
 
 
 def check_split(spec, split, seeds):
@@ -225,12 +231,12 @@ def score(rung_id, seat, seeds=(0, 1, 2), kind="table", split="dev", rates=0.0):
     """The spec's score row for a seat on a rung, with the 8 metrics over all seeds."""
     spec = load_spec()
     check_split(spec, split, seeds)
-    run_spec = with_rates(spec, rates)
-    model = ModelSeat(run_spec) if seat == "model" else None  # one seat for every seed: one shared cap
-    metrics = compute([run_once(rung_id, seat, run_spec, s, kind, model=model) for s in seeds])
+    world = with_rates(spec, rates)  # only the workers and the check see it; the seat keeps what it believes
+    model = ModelSeat(spec) if seat == "model" else None  # one seat for every seed: one shared cap
+    metrics = compute([run_once(rung_id, seat, spec, s, kind, model=model, split=split, world=world) for s in seeds])
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
-            "workers": "sim", **({"model": MODEL, "model_stats": model.stats()} if model else {}), "seed": list(seeds),
+            "workers": "sim", **({"model": getattr(model, "model", MODEL), "model_stats": model.stats()} if model else {}), "seed": list(seeds),
             "metrics": metrics, "split": split, "rates": rates, "stamp": stamp(spec, seat, model)}
 
 

@@ -13,6 +13,7 @@ from ladder.models import MODEL
 from ladder.run import _Leaf, _kill_and_resume, _lift, main, parse_args, run_once, score, stamp, tree, with_rates
 from lair import load_spec
 from lair.baselines import NAMES
+from lair.seat import RuleSeat
 from lair.sim import Sim
 from lair.tasks import make_task
 
@@ -153,5 +154,29 @@ class RunTest(unittest.TestCase):
         self.assertEqual([v for k, v in a["stamp"].items() if k not in ("spec", "seat")], [None] * 4)
         self.assertNotEqual(stamp({**SPEC, "version": "x"}, "rule")["spec"], a["stamp"]["spec"])
         self.assertEqual(stamp(dict(reversed(SPEC.items())), "rule"), a["stamp"])  # key order does not matter
-        seat = stamp(SPEC, "model", SimpleNamespace(system="p"))
-        self.assertEqual((seat["model"], seat["prompt"] is None), (MODEL, False))
+        seat = stamp(SPEC, "model", SimpleNamespace(revision="r", adapter="a", prompt="p"))
+        self.assertEqual(seat, {**seat, "model": MODEL, "revision": "r", "adapter": "a", "prompt": "p"})
+        self.assertEqual(stamp(SPEC, "model", SimpleNamespace())["revision"], None)  # a seat without them gives null
+        self.assertEqual(stamp(SPEC, "model", SimpleNamespace(model="x"))["model"], "x")  # the seat names its model
+
+    def test_a_direct_run_refuses_a_seed_outside_its_split(self):
+        for seat in ("rule", "one_agent"):
+            with self.assertRaises(ValueError):
+                run_once("r10", seat, SPEC, 2000)  # a test seed in dev
+        self.assertTrue(run_once("r10", "one_agent", SPEC, 2000, split="test"))
+
+    def test_rates_move_the_world_but_not_what_the_seat_believes(self):
+        for rates in (0.2, 0.5):
+            picks = []
+            for world in (SPEC, with_rates(SPEC, rates)):
+                seat, seen = RuleSeat(SPEC), []
+                decide = seat.decide
+                seat.decide = lambda obs, d=decide, seen=seen: seen.append(d(obs)) or seen[-1]
+                run_once("r10", "rule", SPEC, 1, model=seat, world=world)
+                picks.append(seen[0][0]["worker_type"])
+            self.assertEqual(picks[0], picks[1], rates)  # at 0.5 the rated medium skill is 0.7: below the bar
+        world, seen = with_rates(SPEC, 0.5), []
+        with mock.patch("lair.baselines.do_item", side_effect=lambda rng, wtype, item: seen.append(wtype) or {
+                "status": "failed", "facts": [], "alarms": [], "spent": {"credits": 4, "seconds": 4}}):
+            run_once("r10", "cheapest_that_passes", SPEC, 1, world=world)
+        self.assertEqual({(w["credits_per_call"], w["skill"]) for w in seen}, {(4, world["worker_types"][1]["skill"])})
