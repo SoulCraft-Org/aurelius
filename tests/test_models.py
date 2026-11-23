@@ -76,3 +76,16 @@ class TestModelSeat(unittest.TestCase):
                 self.assertEqual((names(acts), seat.format_errors), (ENDS, 1))
                 self.assertGreater(seat.spent_usd, 1024 * 0.25 / 1e6)  # at least a full answer: unknown is never zero
                 self.assertNotIn(KEY, json.dumps(acts) + repr(vars(seat)))
+
+    def test_score_runs_the_model_seat_end_to_end(self):
+        # Regression: score() once passed the seat into run_once's budget slot and crashed before any call.
+        from ladder.run import score
+        with reply(("report", {"summary": "done"})):
+            row = score("r10", "model", seeds=(0,))
+        self.assertEqual((row["seat"], row["model"], row["workers"]), ("model", "qwen/qwen3.5-9b", "sim"))
+        self.assertIn("verified_success", row["metrics"])
+
+    def test_a_bad_cap_from_the_environment_fails_closed(self):
+        for bad in ("nan", "-1"):
+            with self.subTest(bad), mock.patch.dict(os.environ, {"MODEL_CAP_USD": bad}), self.assertRaises(ValueError):
+                ModelSeat(SPEC)
