@@ -56,7 +56,7 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 
 | Kind | Why | Source, read 2026-11-22 |
 |---|---|---|
-| Fill-the-table research with known answers | Success is checkable | our plan |
+| Fill-the-table research with known answers | Success is checkable | [arXiv 2602.04634](https://arxiv.org/abs/2602.04634) |
 | Planted faults and alarms | Tests whether alarms reach the root seat | [spec](../spec/aurelius.json) |
 | Tasks where splitting is wrong | Sequential work gets worse with more agents: 39% to 70% on sequential planning | [arXiv 2512.08296](https://arxiv.org/abs/2512.08296) |
 
@@ -65,7 +65,7 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 | Rule | Why | Source, read 2026-11-22 |
 |---|---|---|
 | Open teachers only, Apache-2.0 or MIT | Licences allow it | [gpt-oss-120b](https://huggingface.co/openai/gpt-oss-120b) (Apache-2.0), [DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) (MIT), [GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash) (MIT) |
-| Run teachers on US or EU hosts | Our own rule | n/a |
+| Run teachers on US or EU hosts | Our own rule | our rule |
 | No closed-model outputs | Their terms bar training a competing model on them | [Anthropic](https://www.anthropic.com/legal/commercial-terms), [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) |
 
 ## 🧰 Stack
@@ -91,7 +91,7 @@ Weights for cost and speed come from the dial (quality, cost, speed; default bal
 |---|---|---|
 | Fixed budget per run | Keep the change or reset it | [autoresearch](https://github.com/karpathy/autoresearch) |
 | One metric | Cost per verified success is the headline | [spec](../spec/aurelius.json) |
-| Capped | A cap on runs and a stop switch | our plan |
+| Capped | A cap on runs and a stop switch | [autoresearch](https://github.com/karpathy/autoresearch) (idea only) |
 
 ## 💰 Costs
 
