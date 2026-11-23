@@ -84,7 +84,7 @@ def make_library(task, seed, distractors=0, conflicts=0.0, noise=0.0):
             texts.append(f"Correction: {it.key} was wrongly given as {shown}; the corrected value is {it.answer}.")
         if rng.random() < conflicts:
             old = hexval(rng, (it.answer,))
-            texts.append(f"Superseded: {it.key} was once recorded as {old}; a later entry replaces it.")
+            texts.append(f"Superseded: {it.key} was once recorded as {old}; a later entry replaces {it.key}.")
         for j in range(distractors):
             texts.append(rng.choice(STATE).format(key=f"{it.key}-v{j}", v=hexval(rng, (it.answer,))))
     rng.shuffle(texts)
