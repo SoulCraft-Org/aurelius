@@ -11,6 +11,16 @@
     ],
     "scope": "every doc of the doc set"
    },
+   "agent_docs": [
+    {
+     "glob": "**/AGENTS.md",
+     "why": "instructions every coding agent loads each session"
+    },
+    {
+     "glob": "**/CLAUDE.md",
+     "why": "project instructions Claude loads every session"
+    }
+   ],
    "doc_set_left_out": [
     {
      "glob": ".github/PULL_REQUEST_TEMPLATE.md",
@@ -21,6 +31,19 @@
     {
      "doc": "docs/PLAN.md",
      "area": []
+    },
+    {
+     "doc": "docs/ladder.md",
+     "area": [
+      "lair/",
+      "ladder/"
+     ]
+    },
+    {
+     "doc": "docs/design.md",
+     "area": [
+      "lair/"
+     ]
     },
     {
      "doc": "**",
