@@ -62,9 +62,9 @@ class RealWorkersTest(unittest.TestCase):
 
     def test_a_value_in_no_read_document_is_inferred(self):
         out, _ = run([reply(calls=[ITEM.key]), answer("deadbeef", MAIN)])
-        self.assertEqual((out["status"], out["facts"][0]["tag"], out["facts"][0]["source"]), ("completed", "inferred", MAIN))
+        self.assertEqual((out["status"], out["facts"][0]["tag"], out["facts"][0]["source"]), ("completed", "inferred", None))
         out, _ = run([answer(ITEM.answer, MAIN)])  # a right value it never read is still inferred
-        self.assertEqual((out["facts"][0]["tag"], out["facts"][0]["source"]), ("inferred", "model"))
+        self.assertEqual((out["facts"][0]["tag"], out["facts"][0]["source"]), ("inferred", None))
 
     def test_failures_give_failed_and_count_the_spend(self):
         for name, responses in (("timeout", [TimeoutError()]), ("junk", [reply("no json here")]),
@@ -85,6 +85,22 @@ class RealWorkersTest(unittest.TestCase):
         _, sent = run([reply(calls=[ITEM.key]), answer(ITEM.answer, MAIN)])
         self.assertIn(ITEM.key, sent[0])
         self.assertNotIn(ITEM.answer, sent[0])  # the second request holds the search result, which may hold it
+
+    def test_no_call_runs_past_the_deadline(self):
+        with mock.patch("urllib.request.urlopen") as urlopen:
+            out = RealWorker("small", "http://localhost:8000/v1", "m", LIB, deadline=0).do_item(ITEM)
+        urlopen.assert_not_called()
+        self.assertEqual((out["status"], out["spent"]["credits"]), ("failed", 1))
+
+    def test_seen_needs_a_whole_word_and_a_source_only_when_seen(self):
+        fact = lambda value, text: RealWorker._fact("k", json.dumps({"value": value, "doc": "d1"}), {"d1": text})
+        self.assertEqual((fact("0", "the value is 1a02b")["tag"], fact("0", "the value is 1a02b")["source"]), ("inferred", None))
+        self.assertEqual((fact("0", "The value is 0.")["tag"], fact("0", "The value is 0.")["source"]), ("seen", "d1"))
+
+    def test_any_exception_still_gives_failed_with_the_spend(self):
+        with mock.patch.object(RealWorker, "_ask", side_effect=RuntimeError("boom")):
+            out = RealWorker("small", "http://localhost:8000/v1", "m", LIB).do_item(ITEM)
+        self.assertEqual((out["status"], out["facts"], out["spent"]["credits"]), ("failed", [], 1))
 
     def test_a_bad_url_is_refused(self):
         with self.assertRaises(ValueError):

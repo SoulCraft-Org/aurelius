@@ -30,11 +30,11 @@ BAD = (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError, htt
 
 
 class RealWorker:
-    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S):
+    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S, deadline=None):  # deadline: a time.monotonic() value no call may pass
         if urllib.parse.urlparse(url).scheme not in ("http", "https"):
             raise ValueError("url must be http or https")
         self.wtype = worker_types(spec or load_spec())[kind]
-        self.url, self.model, self.library, self.timeout = url, model, library, timeout
+        self.url, self.model, self.library, self.timeout, self.deadline = url, model, library, timeout, deadline
 
     def __call__(self, item):
         return self.do_item(item)
@@ -45,7 +45,7 @@ class RealWorker:
         try:
             fact = self._ask(item.key, used, read)
             status, facts = "completed", [fact]
-        except BAD:  # the type only is ever kept: no body, no answer text
+        except Exception:  # whatever it is, the spend is counted and nothing of the error is kept: no body, no answer text
             status, facts = "failed", []
         spent = {"credits": self.wtype["credits_per_call"], "seconds": round(time.monotonic() - start, 3), "tokens": used["tokens"]}
         return {"status": status, "facts": facts, "alarms": [], "spent": spent}
@@ -78,7 +78,10 @@ class RealWorker:
         body = json.dumps(req).encode()
         head = {"Content-Type": "application/json"}
         try:
-            with urllib.request.urlopen(urllib.request.Request(self.url, body, head), timeout=self.timeout) as r:
+            wait = self.timeout if self.deadline is None else min(self.timeout, self.deadline - time.monotonic())
+            if wait <= 0:
+                raise TimeoutError("past the deadline")
+            with urllib.request.urlopen(urllib.request.Request(self.url, body, head), timeout=wait) as r:
                 data = json.load(r)
             n = data["usage"]["total_tokens"]
             used["tokens"] += n if isinstance(n, int) and not isinstance(n, bool) and n > 0 else len(body) // 3 + MAX_TOKENS
@@ -95,6 +98,7 @@ class RealWorker:
         if not isinstance(value, str) or not value.strip():
             raise ValueError("value must be a non-empty string")
         value = value.strip()
-        hit = [d for d, t in read.items() if value.lower() in t.lower()]  # seen: the value is in a document it read
-        source = doc if doc in hit else hit[0] if hit else doc if doc in read else "model"
+        word = re.compile(r"\b" + re.escape(value) + r"\b", re.I)  # whole words: a short value is not seen inside a longer one
+        hit = [d for d, t in read.items() if word.search(t)]  # seen: the value is in a document it read
+        source = doc if doc in hit else hit[0] if hit else None
         return {"claim": key, "value": value, "tag": "seen" if hit else "inferred", "source": source}

@@ -1,6 +1,6 @@
-"""Score the untrained seat (Qwen/Qwen3.5-9B, Apache-2.0) on Modal's monthly credit, behind the spend guard (step 25, #67).
+"""Score the untrained seat (Qwen/Qwen3.5-9B, Apache-2.0) or run real workers on Modal's monthly credit, behind the spend guard (steps 25 and 29, #67, #71).
 
-One GPU container starts vLLM on its own localhost, scores each job with ladder.run, and ends. Commands: train/README.md.
+One GPU container serves one model with vLLM on its own localhost, runs each job, and ends. Commands: train/README.md.
 Launch from the repo root with `python -I train/serve.py`: -I drops the repo from the path, so this file adds it.
 """
 
@@ -18,10 +18,13 @@ import modal
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from lair.real_workers import REAL_WORKERS  # noqa: E402  (stdlib only; needs the path line above)
 
 MODEL, REVISION = "Qwen/Qwen3.5-9B", "c202236235762e1c871ad0ccb60c8ee5ba337b9a"  # Hugging Face's commit, read 2026-11-23
 GPU, GPU_USD_H = "L4", 0.80  # 24 GB; Modal's list price, $0.000222 a second, read 2026-11-23 (modal.com/pricing)
 TIMEOUT_S, START_S, BOOT_S, PORT, HF = 1800, 900, 180, 8000, "/opt/hf"  # hard stop; wait for vLLM; cold start the ledger adds (our estimate)
+WEIGHTS = {MODEL: REVISION, **{w["model"]: w["revision"] for w in REAL_WORKERS.values()}}  # every model a container may serve
+MAX_ITEMS, CALL_S = 200, 50  # items per workers job; seconds a model call may take: 5 calls (4 tool rounds and the answer) fit the 300 s margin
 LEDGER = ROOT / "ladder" / "spend.jsonl"
 REQS = [x for x in (ROOT / "train" / "requirements.txt").read_text().splitlines() if x and x[0] != "#"] if modal.is_local() else []
 
@@ -29,7 +32,7 @@ app = modal.App("aurelius-serve")
 image = (modal.Image.from_registry("nvidia/cuda:12.9.0-devel-ubuntu22.04", add_python="3.12").entrypoint([])
          .uv_pip_install(*REQS).env({"HF_HOME": HF})
          # the weights come in at build time, on CPU, so no GPU second pays for the download
-         .run_commands(f"python -c \"from huggingface_hub import snapshot_download as s; s('{MODEL}', revision='{REVISION}')\"")
+         .run_commands(*[f"python -c \"from huggingface_hub import snapshot_download as s; s('{m}', revision='{r}')\"" for m, r in WEIGHTS.items()])
          .env({"HF_HUB_OFFLINE": "1"}).add_local_python_source("lair", "ladder").add_local_dir(ROOT / "spec", "/root/spec"))
 
 
@@ -46,10 +49,10 @@ def _wait(proc, t0):  # until vLLM answers /health; a dead server or the START_S
 
 
 @app.function(image=image, gpu=GPU, timeout=TIMEOUT_S, max_containers=1, scaledown_window=2, single_use_containers=True)
-def run_jobs(jobs):
-    t0 = time.monotonic()
-    os.environ.update(SEAT_URL=f"http://localhost:{PORT}/v1/chat/completions", SEAT_MODEL=MODEL, SEAT_GPU_USD_H=str(GPU_USD_H))
-    cmd = ["vllm", "serve", MODEL, "--revision", REVISION, "--served-model-name", MODEL, "--host", "127.0.0.1", "--port", str(PORT),
+def run_jobs(jobs, model=MODEL):  # model: one of WEIGHTS; the container serves only it
+    t0, url = time.monotonic(), f"http://localhost:{PORT}/v1/chat/completions"
+    os.environ.update(SEAT_URL=url, SEAT_MODEL=model, SEAT_GPU_USD_H=str(GPU_USD_H))
+    cmd = ["vllm", "serve", model, "--revision", WEIGHTS[model], "--served-model-name", model, "--host", "127.0.0.1", "--port", str(PORT),
            "--max-model-len", "16384", "--max-num-seqs", "4", "--gpu-memory-utilization", "0.90", "--language-model-only", "--enforce-eager",
            "--enable-auto-tool-choice", "--tool-call-parser", "qwen3_coder",  # the model card's parser
            "--default-chat-template-kwargs", '{"enable_thinking": false}']  # thinking is on by default and would eat the 1024-token reply
@@ -62,9 +65,9 @@ def run_jobs(jobs):
             if time.monotonic() - t0 > TIMEOUT_S - 300:
                 rows.append({"job": job, "error": "skipped: out of time"})
                 continue
-            os.environ["SEAT_LOCK"] = "1" if job["lock"] else "0"
+            os.environ["SEAT_LOCK"] = "1" if job.get("lock") else "0"
             try:
-                rows.append(score(job["rung"], "model", tuple(job["seeds"]), "table", job["split"]))
+                rows.append(_workers(job, url, model, t0) if "kind" in job else score(job["rung"], "model", tuple(job["seeds"]), "table", job["split"]))
             except Exception as err:  # one job's failure must not cost the rest; the type only, never a body
                 rows.append({"job": job, "error": type(err).__name__})
     except Exception as err:  # the GPU time was spent: return it, so the ledger records it
@@ -77,6 +80,33 @@ def run_jobs(jobs):
             except subprocess.TimeoutExpired:
                 proc.kill()
     return {"rows": rows, "gpu_seconds": round(time.monotonic() - t0, 1), **({"error": error} if error else {})}
+
+
+def _workers(job, url, model, t0):  # real workers over one seeded Library: the replies, never the answers
+    from lair.library import make_library  # inside the container only
+    from lair.real_workers import RealWorker
+    from lair.tasks import make_task
+    task = make_task(job["seed"], job["size"])
+    deadline = t0 + TIMEOUT_S - 300  # no call runs past it: Modal's hard stop would discard every reply
+    worker, replies = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline), {}
+    for it in task.items:
+        reply = worker(it) if time.monotonic() <= deadline else None
+        if reply is None or time.monotonic() > deadline:  # an item cut short by the deadline is not a measurement
+            return {"job": job, "replies": replies, "skipped": [i.key for i in task.items if i.key not in replies]}
+        replies[it.key] = reply
+    return {"job": job, "replies": replies}
+
+
+def _within(cast, hi):  # an argparse type: a number from 0 to hi; nan fails too. A bad value exits before the guard, so no GPU is booked
+    def parse(text):
+        try:
+            v = cast(text)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"not a number: {text[:20]!r}") from None
+        if not 0 <= v <= hi:
+            raise argparse.ArgumentTypeError(f"{text[:20]!r} is outside 0 to {hi}")
+        return v
+    return parse
 
 
 def _job(text):  # RUNG:SPLIT:SEEDS[:lock], SEEDS as 0,1,2 or 0-2
@@ -97,8 +127,22 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("smoke", help="r10, dev seed 0, once, lock off")
     sub.add_parser("score", help="one or more jobs").add_argument("--job", action="append", required=True, help="RUNG:SPLIT:SEEDS[:lock]")
+    w = sub.add_parser("workers", help="real workers of one type over a seeded Library")
+    w.add_argument("--kind", choices=list(REAL_WORKERS), required=True)
+    w.add_argument("--seed", type=int, required=True)
+    w.add_argument("--split", default="dev")
+    w.add_argument("--size", type=int, default=20, help=f"items, 1 to {MAX_ITEMS}")
+    for knob, cast, hi, default in (("distractors", int, 10, 2), ("conflicts", float, 1, 0.3), ("noise", float, 5, 1.0)):  # ours: a Library that is not trivial
+        w.add_argument(f"--{knob}", type=_within(cast, hi), default=default, help=f"0 to {hi}")
     args = p.parse_args(argv)
-    jobs = [{"rung": "r10", "split": "dev", "seeds": [0], "lock": False}] if args.cmd == "smoke" else [_job(j) for j in args.job]
+    model = REAL_WORKERS[args.kind]["model"] if args.cmd == "workers" else MODEL
+    if args.cmd == "workers":
+        if not 0 < args.size <= MAX_ITEMS:
+            sys.exit(f"size must be 1 to {MAX_ITEMS}")
+        jobs = [{"kind": args.kind, "split": args.split, "seeds": [args.seed], "seed": args.seed, "size": args.size,
+                 "library": {k: getattr(args, k) for k in ("distractors", "conflicts", "noise")}}]
+    else:
+        jobs = [{"rung": "r10", "split": "dev", "seeds": [0], "lock": False}] if args.cmd == "smoke" else [_job(j) for j in args.job]
     for j in jobs:
         check_split(load_spec(), j["split"], j["seeds"])
     try:
@@ -108,7 +152,7 @@ def main(argv=None):
     run_id, start, result = f"{datetime.now(timezone.utc):%Y-%m-%dT%H%M%SZ}-{args.cmd}", time.monotonic(), None
     try:
         with modal.enable_output(), app.run():
-            result = run_jobs.remote(jobs)
+            result = run_jobs.remote(jobs, model)
     finally:  # a failed run is charged what the clock says, capped at the timeout: never recorded as free
         secs = result["gpu_seconds"] + BOOT_S if result else min(time.monotonic() - start, TIMEOUT_S)
         spend.append(LEDGER, spend.row(run_id, guard.LANE, GPU, round(secs, 1), GPU_USD_H, round(secs / 3600 * GPU_USD_H, 4), 0))
