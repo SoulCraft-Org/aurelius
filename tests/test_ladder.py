@@ -68,6 +68,18 @@ class RunTest(unittest.TestCase):
             with mock.patch("ladder.run.check", return_value=verdict):
                 self.assertEqual(_lift(Sim(0), task, SPEC, {"a": item}, 2, kids, [100])[1], up)
 
+    def test_a_check_drops_keys_with_no_reply_or_already_checked(self):  # #59: map then check one key crashed with KeyError
+        task = make_task(1, 10)
+        key = task.items[0].key
+        send = {"name": "map", "children": [key], "worker_type": "small"}
+        check = {"name": "check", "children": [key]}
+        end = [{"name": "stop", "children": []}]
+        rounds = iter([[send, check], [check], [check], end])  # cleared, then valid, then already checked
+        leaf = _Leaf(SPEC, task, task.items, 1, 50, SimpleNamespace(decide=lambda obs: next(rounds)))
+        leaf.sim.run()
+        self.assertEqual(len(rows(leaf.sim.log, "check")), 1)
+        self.assertEqual(list(leaf.checked), [key])
+
     def test_no_split_takes_every_step_and_no_split_row_is_shortened(self):
         log = run_once("r10", "rule", SPEC, 1, "no_split")
         self.assertEqual(rows(log, "final")[0]["critical_steps"], 10)

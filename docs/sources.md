@@ -1,6 +1,6 @@
 # 📚 Sources
 
-Every idea and number Aurelius uses, with its source. All read on 2026-11-22. 🗣️ marks a figure the vendor states about its own product.
+Every idea and number Aurelius uses, with its source. All read on 2026-11-22, or 2026-11-23 for the moves fold. 🗣️ marks a figure the vendor states about its own product.
 
 Open a fold to see its rows.
 
@@ -82,6 +82,26 @@ Open a fold to see its rows.
 | Agent evals that run in CI | | [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai) | MIT |
 | Closed models bar training a competing model on their outputs, so none writes or grades data | | [OpenAI](https://openai.com/policies/row-terms-of-use/), [Google](https://ai.google.dev/gemini-api/terms) | terms: idea only, no text copied |
 | No training on outputs without Anthropic's prior authorization | | [Anthropic Usage Policy](https://www.anthropic.com/legal/aup) | terms: idea only, no text copied |
+
+</details>
+
+<details>
+<summary>🧰 Training moves (12)</summary>
+
+| Idea we take | Number | Source | Licence |
+|---|---|---|---|
+| Lock tool calls to a schema at decode time | | [vLLM structured outputs](https://docs.vllm.ai/en/latest/features/structured_outputs/) | Apache-2.0 |
+| Evolve prompts from run feedback instead of training | about 6% above GRPO with up to 35x fewer rollouts 🗣️ | [GEPA, arXiv 2507.19457](https://arxiv.org/abs/2507.19457) | paper |
+| LoRA can match full fine-tuning on small and medium sets, RL included | | [LoRA Without Regret](https://thinkingmachines.ai/blog/lora/) | blog: idea only, no text copied |
+| LoRA adapters for the student | | [PEFT](https://github.com/huggingface/peft) | Apache-2.0 |
+| GRPO on one GPU, vLLM colocated in the trainer | | [TRL GRPOTrainer](https://huggingface.co/docs/trl/main/en/grpo_trainer) | Apache-2.0 |
+| Blend adapters | | [mergekit, arXiv 2403.13257](https://arxiv.org/abs/2403.13257) | paper |
+| A playbook that grows from logged runs | | [ACE, arXiv 2510.04618](https://arxiv.org/abs/2510.04618) | paper |
+| Prompting beat every steering method, so steering is skipped | | [AxBench, arXiv 2501.17148](https://arxiv.org/abs/2501.17148) | paper |
+| Fact editing changes facts, not skills, so it is skipped | | [ROME, arXiv 2202.05262](https://arxiv.org/abs/2202.05262) | paper |
+| Mass fact editing, same reason | thousands of edits | [MEMIT, arXiv 2210.07229](https://arxiv.org/abs/2210.07229) | paper |
+| A search loop drifts when its guardrails loosen, so the scorer stays out of its reach | | [Cerebras](https://www.cerebras.ai/blog/how-to-stop-your-autoresearch-loop-from-cheating) | blog: idea only, no text copied |
+| GPU list prices per second, the base of our credit estimates | | [Modal pricing](https://modal.com/pricing) | prices: we keep our own dated table |
 
 </details>
 
