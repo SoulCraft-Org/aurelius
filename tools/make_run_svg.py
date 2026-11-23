@@ -16,7 +16,8 @@ sys.path.insert(0, str(ROOT))
 RUNG, SEED, BAR, SAMPLE = "r47", 0, 0.5, 1.0
 W, H, SEAT, R, ARC = 960, 420, (480, 60), 270, 70
 CYCLE, RUN = 16, 12  # seconds: the whole loop, and the part that plays the log
-COST = [(1, "#B9A8F5", "1 credit"), (2, "#7457E0", "2 to 5"), (6, "#3E2A9E", "6 or more")]
+# Every colour clears 3:1 on white and on #0d1117 (GitHub shows the SVG on either); text sits on a dark chip.
+COST = [(1, "#9A82F5", "1 credit"), (2, "#7C5FE0", "2 to 5"), (6, "#6A4FD8", "6 or more")]
 IDLE, RED, GREEN = "none", "#E5484D", "#2EA66B"
 OUT = ROOT / "docs" / "img" / "run.svg"
 
@@ -86,38 +87,40 @@ def render(log):
     for i, (x, y) in enumerate(xy):
         steps = look[f"k{i}"]
         final = steps[-1]
-        frames = "0%{fill:none;stroke:#888A}" + "".join(
-            f"{_pct(t, end)}%{{fill:{f};stroke:{s if s != IDLE else '#888A'}}}" for t, f, s in steps) + "97%{fill:none;stroke:#888A}"
+        frames = "0%{fill:none;stroke:#8B949E}" + "".join(
+            f"{_pct(t, end)}%{{fill:{f};stroke:{s if s != IDLE else '#8B949E'}}}" for t, f, s in steps) + "97%{fill:none;stroke:#8B949E}"
         css.append(f".w{i}{{animation:a{i} {CYCLE}s step-end infinite}}@keyframes a{i}{{{frames}}}")
         body.append(f'<line class="l" x1="{SEAT[0]}" y1="{SEAT[1]}" x2="{x:.1f}" y2="{y:.1f}"/>')
         body.append(f'<circle class="w{i}" cx="{x:.1f}" cy="{y:.1f}" r="6" fill="{final[1]}" '
-                    f'stroke="{final[2] if final[2] != IDLE else "#888A"}" stroke-width="2"/>')
-    legend = [f'<circle cx="{40 + 130 * j}" cy="372" r="6" fill="{c}" stroke="#888A" stroke-width="2"/>'
-              f'<text x="{52 + 130 * j}" y="377">{label}</text>' for j, (_, c, label) in enumerate(COST)]
-    legend += [f'<circle cx="430" cy="372" r="6" fill="{RED}" stroke="{RED}" stroke-width="2"/><text x="442" y="377">wrong fact caught</text>',
-               f'<circle cx="610" cy="372" r="6" fill="none" stroke="{GREEN}" stroke-width="2"/><text x="622" y="377">check passed</text>']
+                    f'stroke="{final[2] if final[2] != IDLE else "#8B949E"}" stroke-width="2"/>')
+    legend = [f'<circle cx="{40 + 130 * j}" cy="358" r="6" fill="{c}" stroke="#8B949E" stroke-width="2"/>'
+              f'<text x="{52 + 130 * j}" y="363">{label}</text>' for j, (_, c, label) in enumerate(COST)]
+    legend += [f'<circle cx="430" cy="358" r="6" fill="{RED}" stroke="{RED}" stroke-width="2"/><text x="442" y="363">wrong fact caught</text>',
+               f'<circle cx="610" cy="358" r="6" fill="none" stroke="{GREEN}" stroke-width="2"/><text x="622" y="363">check passed</text>']
     caption = f"sim run, rule seat, dev seed {SEED}"
     note = (f"{RUNG}, bar {BAR}, sample {SAMPLE}: {report['facts_in']} facts in, {report['wrong_in']} wrong; "
             f"{report['facts_out']} out, {report['wrong_out']} wrong after checks; sim time 0 to {end:g} s")
-    title = f"Aurelius {RUNG} run: one seat maps {n} workers, replies arrive, checks pass or fail, the report goes up"
+    title = f"Aurelius {RUNG} sim run: one seat maps {n} workers, replies arrive, checks pass or fail, the report goes up"
     head = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-label="{title}">'
-    style = (".l{stroke:#888A;stroke-width:1;opacity:.5;animation:ln %ds linear infinite}"
+    style = (".l{stroke:#8B949E;stroke-width:1;opacity:.5;animation:ln %ds linear infinite}"
              "@keyframes ln{0%%{opacity:0}2%%{opacity:.5}97%%{opacity:.5}100%%{opacity:0}}"
-             ".s{fill:#C9971C}.p{fill:none;stroke:#C9971C;stroke-width:3;opacity:0;transform-origin:%dpx %dpx;"
+             ".s{fill:#B8860B}.p{fill:none;stroke:#B8860B;stroke-width:3;opacity:0;transform-origin:%dpx %dpx;"
              "animation:rg %ds ease-out infinite}"
              "@keyframes rg{0%%,%s%%{opacity:0;transform:scale(1)}%s%%{opacity:1}%s%%{opacity:0;transform:scale(2.2)}100%%{opacity:0}}"
-             ".c{fill:#7457E0;transform-origin:40px 0;animation:cl %ds linear infinite}"
+             ".c{fill:#7C5FE0;transform-origin:40px 0;animation:cl %ds linear infinite}"
              "@keyframes cl{0%%{transform:scaleX(0)}%s%%,100%%{transform:scaleX(1)}}"
-             'text{font:600 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#8A6BF0}text.m{font-weight:400}'
-             "@media (prefers-color-scheme:light){text{fill:#5B3FC4}}"
+             'text{font:600 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#E6EDF3}text.m{font-weight:400}'
+             ".k{fill:#0d1117;stroke:#8B949E}"
              "@media (prefers-reduced-motion:reduce){*{animation:none!important}.p{opacity:0}}"
              % (CYCLE, SEAT[0], SEAT[1], CYCLE, _pct(end, end) - 0.01, _pct(end, end), _pct(end, end) + 6,
                 CYCLE, _pct(end, end)))
     parts = [head, f"<title>{title}</title>", f"<style>{style}{''.join(css)}</style>", *body,
              f'<circle class="s" cx="{SEAT[0]}" cy="{SEAT[1]}" r="16"/>',
              f'<circle class="p" cx="{SEAT[0]}" cy="{SEAT[1]}" r="16"/>',
-             f'<rect class="c" x="40" y="396" width="880" height="3"/>', *legend,
-             f'<text x="40" y="30">{caption}</text>', f'<text class="m" x="40" y="414">{note}</text>', "</svg>"]
+             f'<rect class="c" x="40" y="378" width="880" height="3"/>',
+             '<rect class="k" x="24" y="344" width="912" height="28" rx="6"/>', *legend,
+             '<rect class="k" x="24" y="12" width="300" height="28" rx="6"/><rect class="k" x="24" y="386" width="912" height="26" rx="6"/>',
+             f'<text x="38" y="31">{caption}</text>', f'<text class="m" x="38" y="403">{note}</text>', "</svg>"]
     return "\n".join(parts) + "\n"
 
 

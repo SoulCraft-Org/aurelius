@@ -8,7 +8,7 @@
 
 🧊 [The 2,209-agent tree in 3D, drag to turn](docs/img/tree.stl)
 
-⏱️ [One run of the 47-worker tree, lighting up over time](docs/img/run.svg)
+⏱️ [One simulated run of the 47-worker tree, lighting up over time](docs/img/run.svg)
 
 Aurelius trains one open model to direct 100,000+ agents as a tree of seats: 47 × 47 × 47 = 103,823.
 

@@ -1,108 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-label="Aurelius r47 run: one seat maps 47 workers, replies arrive, checks pass or fail, the report goes up">
-<title>Aurelius r47 run: one seat maps 47 workers, replies arrive, checks pass or fail, the report goes up</title>
-<style>.l{stroke:#888A;stroke-width:1;opacity:.5;animation:ln 16s linear infinite}@keyframes ln{0%{opacity:0}2%{opacity:.5}97%{opacity:.5}100%{opacity:0}}.s{fill:#C9971C}.p{fill:none;stroke:#C9971C;stroke-width:3;opacity:0;transform-origin:480px 60px;animation:rg 16s ease-out infinite}@keyframes rg{0%,74.99%{opacity:0;transform:scale(1)}75.0%{opacity:1}81.0%{opacity:0;transform:scale(2.2)}100%{opacity:0}}.c{fill:#7457E0;transform-origin:40px 0;animation:cl 16s linear infinite}@keyframes cl{0%{transform:scaleX(0)}75.0%,100%{transform:scaleX(1)}}text{font:600 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#8A6BF0}text.m{font-weight:400}@media (prefers-color-scheme:light){text{fill:#5B3FC4}}@media (prefers-reduced-motion:reduce){*{animation:none!important}.p{opacity:0}}.w0{animation:a0 16s step-end infinite}@keyframes a0{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w1{animation:a1 16s step-end infinite}@keyframes a1{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#888A}33.33%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w2{animation:a2 16s step-end infinite}@keyframes a2{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w3{animation:a3 16s step-end infinite}@keyframes a3{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w4{animation:a4 16s step-end infinite}@keyframes a4{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w5{animation:a5 16s step-end infinite}@keyframes a5{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w6{animation:a6 16s step-end infinite}@keyframes a6{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w7{animation:a7 16s step-end infinite}@keyframes a7{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#3E2A9E;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w8{animation:a8 16s step-end infinite}@keyframes a8{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w9{animation:a9 16s step-end infinite}@keyframes a9{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w10{animation:a10 16s step-end infinite}@keyframes a10{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w11{animation:a11 16s step-end infinite}@keyframes a11{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w12{animation:a12 16s step-end infinite}@keyframes a12{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w13{animation:a13 16s step-end infinite}@keyframes a13{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w14{animation:a14 16s step-end infinite}@keyframes a14{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w15{animation:a15 16s step-end infinite}@keyframes a15{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w16{animation:a16 16s step-end infinite}@keyframes a16{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w17{animation:a17 16s step-end infinite}@keyframes a17{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w18{animation:a18 16s step-end infinite}@keyframes a18{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#888A}33.33%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w19{animation:a19 16s step-end infinite}@keyframes a19{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w20{animation:a20 16s step-end infinite}@keyframes a20{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w21{animation:a21 16s step-end infinite}@keyframes a21{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#888A}16.67%{fill:#E5484D;stroke:#E5484D}33.33%{fill:#E5484D;stroke:#E5484D}58.33%{fill:#3E2A9E;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w22{animation:a22 16s step-end infinite}@keyframes a22{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w23{animation:a23 16s step-end infinite}@keyframes a23{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#3E2A9E;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w24{animation:a24 16s step-end infinite}@keyframes a24{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w25{animation:a25 16s step-end infinite}@keyframes a25{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w26{animation:a26 16s step-end infinite}@keyframes a26{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w27{animation:a27 16s step-end infinite}@keyframes a27{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w28{animation:a28 16s step-end infinite}@keyframes a28{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w29{animation:a29 16s step-end infinite}@keyframes a29{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w30{animation:a30 16s step-end infinite}@keyframes a30{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w31{animation:a31 16s step-end infinite}@keyframes a31{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w32{animation:a32 16s step-end infinite}@keyframes a32{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w33{animation:a33 16s step-end infinite}@keyframes a33{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w34{animation:a34 16s step-end infinite}@keyframes a34{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w35{animation:a35 16s step-end infinite}@keyframes a35{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w36{animation:a36 16s step-end infinite}@keyframes a36{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w37{animation:a37 16s step-end infinite}@keyframes a37{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w38{animation:a38 16s step-end infinite}@keyframes a38{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w39{animation:a39 16s step-end infinite}@keyframes a39{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w40{animation:a40 16s step-end infinite}@keyframes a40{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w41{animation:a41 16s step-end infinite}@keyframes a41{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w42{animation:a42 16s step-end infinite}@keyframes a42{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w43{animation:a43 16s step-end infinite}@keyframes a43{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7457E0;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w44{animation:a44 16s step-end infinite}@keyframes a44{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w45{animation:a45 16s step-end infinite}@keyframes a45{0%{fill:none;stroke:#888A}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#3E2A9E;stroke:#2EA66B}97%{fill:none;stroke:#888A}}.w46{animation:a46 16s step-end infinite}@keyframes a46{0%{fill:none;stroke:#888A}8.33%{fill:#B9A8F5;stroke:#2EA66B}97%{fill:none;stroke:#888A}}</style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-label="Aurelius r47 sim run: one seat maps 47 workers, replies arrive, checks pass or fail, the report goes up">
+<title>Aurelius r47 sim run: one seat maps 47 workers, replies arrive, checks pass or fail, the report goes up</title>
+<style>.l{stroke:#8B949E;stroke-width:1;opacity:.5;animation:ln 16s linear infinite}@keyframes ln{0%{opacity:0}2%{opacity:.5}97%{opacity:.5}100%{opacity:0}}.s{fill:#B8860B}.p{fill:none;stroke:#B8860B;stroke-width:3;opacity:0;transform-origin:480px 60px;animation:rg 16s ease-out infinite}@keyframes rg{0%,74.99%{opacity:0;transform:scale(1)}75.0%{opacity:1}81.0%{opacity:0;transform:scale(2.2)}100%{opacity:0}}.c{fill:#7C5FE0;transform-origin:40px 0;animation:cl 16s linear infinite}@keyframes cl{0%{transform:scaleX(0)}75.0%,100%{transform:scaleX(1)}}text{font:600 13px system-ui,-apple-system,"Segoe UI",sans-serif;fill:#E6EDF3}text.m{font-weight:400}.k{fill:#0d1117;stroke:#8B949E}@media (prefers-reduced-motion:reduce){*{animation:none!important}.p{opacity:0}}.w0{animation:a0 16s step-end infinite}@keyframes a0{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w1{animation:a1 16s step-end infinite}@keyframes a1{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#8B949E}33.33%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w2{animation:a2 16s step-end infinite}@keyframes a2{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w3{animation:a3 16s step-end infinite}@keyframes a3{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w4{animation:a4 16s step-end infinite}@keyframes a4{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w5{animation:a5 16s step-end infinite}@keyframes a5{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w6{animation:a6 16s step-end infinite}@keyframes a6{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w7{animation:a7 16s step-end infinite}@keyframes a7{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#6A4FD8;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w8{animation:a8 16s step-end infinite}@keyframes a8{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w9{animation:a9 16s step-end infinite}@keyframes a9{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w10{animation:a10 16s step-end infinite}@keyframes a10{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w11{animation:a11 16s step-end infinite}@keyframes a11{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w12{animation:a12 16s step-end infinite}@keyframes a12{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w13{animation:a13 16s step-end infinite}@keyframes a13{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w14{animation:a14 16s step-end infinite}@keyframes a14{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w15{animation:a15 16s step-end infinite}@keyframes a15{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w16{animation:a16 16s step-end infinite}@keyframes a16{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w17{animation:a17 16s step-end infinite}@keyframes a17{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w18{animation:a18 16s step-end infinite}@keyframes a18{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#8B949E}33.33%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w19{animation:a19 16s step-end infinite}@keyframes a19{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w20{animation:a20 16s step-end infinite}@keyframes a20{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w21{animation:a21 16s step-end infinite}@keyframes a21{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#8B949E}16.67%{fill:#E5484D;stroke:#E5484D}33.33%{fill:#E5484D;stroke:#E5484D}58.33%{fill:#6A4FD8;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w22{animation:a22 16s step-end infinite}@keyframes a22{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w23{animation:a23 16s step-end infinite}@keyframes a23{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#6A4FD8;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w24{animation:a24 16s step-end infinite}@keyframes a24{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w25{animation:a25 16s step-end infinite}@keyframes a25{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w26{animation:a26 16s step-end infinite}@keyframes a26{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w27{animation:a27 16s step-end infinite}@keyframes a27{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w28{animation:a28 16s step-end infinite}@keyframes a28{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w29{animation:a29 16s step-end infinite}@keyframes a29{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w30{animation:a30 16s step-end infinite}@keyframes a30{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w31{animation:a31 16s step-end infinite}@keyframes a31{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w32{animation:a32 16s step-end infinite}@keyframes a32{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w33{animation:a33 16s step-end infinite}@keyframes a33{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w34{animation:a34 16s step-end infinite}@keyframes a34{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w35{animation:a35 16s step-end infinite}@keyframes a35{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w36{animation:a36 16s step-end infinite}@keyframes a36{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w37{animation:a37 16s step-end infinite}@keyframes a37{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w38{animation:a38 16s step-end infinite}@keyframes a38{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w39{animation:a39 16s step-end infinite}@keyframes a39{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w40{animation:a40 16s step-end infinite}@keyframes a40{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w41{animation:a41 16s step-end infinite}@keyframes a41{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w42{animation:a42 16s step-end infinite}@keyframes a42{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w43{animation:a43 16s step-end infinite}@keyframes a43{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#7C5FE0;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w44{animation:a44 16s step-end infinite}@keyframes a44{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w45{animation:a45 16s step-end infinite}@keyframes a45{0%{fill:none;stroke:#8B949E}8.33%{fill:#E5484D;stroke:#E5484D}25.0%{fill:#E5484D;stroke:#E5484D}41.67%{fill:#E5484D;stroke:#E5484D}75.0%{fill:#6A4FD8;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}.w46{animation:a46 16s step-end infinite}@keyframes a46{0%{fill:none;stroke:#8B949E}8.33%{fill:#9A82F5;stroke:#2EA66B}97%{fill:none;stroke:#8B949E}}</style>
 <line class="l" x1="480" y1="60" x2="226.3" y2="152.3"/>
-<circle class="w0" cx="226.3" cy="152.3" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w0" cx="226.3" cy="152.3" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="231.5" y2="165.7"/>
-<circle class="w1" cx="231.5" cy="165.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w1" cx="231.5" cy="165.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="237.5" y2="178.7"/>
-<circle class="w2" cx="237.5" cy="178.7" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w2" cx="237.5" cy="178.7" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="244.2" y2="191.4"/>
-<circle class="w3" cx="244.2" cy="191.4" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w3" cx="244.2" cy="191.4" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="251.5" y2="203.8"/>
-<circle class="w4" cx="251.5" cy="203.8" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w4" cx="251.5" cy="203.8" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="259.4" y2="215.7"/>
-<circle class="w5" cx="259.4" cy="215.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w5" cx="259.4" cy="215.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="268.0" y2="227.2"/>
-<circle class="w6" cx="268.0" cy="227.2" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w6" cx="268.0" cy="227.2" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="277.2" y2="238.2"/>
-<circle class="w7" cx="277.2" cy="238.2" r="6" fill="#3E2A9E" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w7" cx="277.2" cy="238.2" r="6" fill="#6A4FD8" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="286.9" y2="248.7"/>
-<circle class="w8" cx="286.9" cy="248.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w8" cx="286.9" cy="248.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="297.2" y2="258.7"/>
-<circle class="w9" cx="297.2" cy="258.7" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w9" cx="297.2" cy="258.7" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="308.0" y2="268.1"/>
-<circle class="w10" cx="308.0" cy="268.1" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w10" cx="308.0" cy="268.1" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="319.3" y2="277.0"/>
-<circle class="w11" cx="319.3" cy="277.0" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w11" cx="319.3" cy="277.0" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="331.1" y2="285.2"/>
-<circle class="w12" cx="331.1" cy="285.2" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w12" cx="331.1" cy="285.2" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="343.2" y2="292.8"/>
-<circle class="w13" cx="343.2" cy="292.8" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w13" cx="343.2" cy="292.8" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="355.8" y2="299.7"/>
-<circle class="w14" cx="355.8" cy="299.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w14" cx="355.8" cy="299.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="368.7" y2="306.0"/>
-<circle class="w15" cx="368.7" cy="306.0" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w15" cx="368.7" cy="306.0" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="381.9" y2="311.5"/>
-<circle class="w16" cx="381.9" cy="311.5" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w16" cx="381.9" cy="311.5" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="395.4" y2="316.4"/>
-<circle class="w17" cx="395.4" cy="316.4" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w17" cx="395.4" cy="316.4" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="409.1" y2="320.5"/>
-<circle class="w18" cx="409.1" cy="320.5" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w18" cx="409.1" cy="320.5" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="423.1" y2="323.9"/>
-<circle class="w19" cx="423.1" cy="323.9" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w19" cx="423.1" cy="323.9" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="437.2" y2="326.6"/>
-<circle class="w20" cx="437.2" cy="326.6" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w20" cx="437.2" cy="326.6" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="451.4" y2="328.5"/>
-<circle class="w21" cx="451.4" cy="328.5" r="6" fill="#3E2A9E" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w21" cx="451.4" cy="328.5" r="6" fill="#6A4FD8" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="465.7" y2="329.6"/>
-<circle class="w22" cx="465.7" cy="329.6" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w22" cx="465.7" cy="329.6" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="480.0" y2="330.0"/>
-<circle class="w23" cx="480.0" cy="330.0" r="6" fill="#3E2A9E" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w23" cx="480.0" cy="330.0" r="6" fill="#6A4FD8" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="494.3" y2="329.6"/>
-<circle class="w24" cx="494.3" cy="329.6" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w24" cx="494.3" cy="329.6" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="508.6" y2="328.5"/>
-<circle class="w25" cx="508.6" cy="328.5" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w25" cx="508.6" cy="328.5" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="522.8" y2="326.6"/>
-<circle class="w26" cx="522.8" cy="326.6" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w26" cx="522.8" cy="326.6" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="536.9" y2="323.9"/>
-<circle class="w27" cx="536.9" cy="323.9" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w27" cx="536.9" cy="323.9" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="550.9" y2="320.5"/>
-<circle class="w28" cx="550.9" cy="320.5" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w28" cx="550.9" cy="320.5" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="564.6" y2="316.4"/>
-<circle class="w29" cx="564.6" cy="316.4" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w29" cx="564.6" cy="316.4" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="578.1" y2="311.5"/>
-<circle class="w30" cx="578.1" cy="311.5" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w30" cx="578.1" cy="311.5" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="591.3" y2="306.0"/>
-<circle class="w31" cx="591.3" cy="306.0" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w31" cx="591.3" cy="306.0" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="604.2" y2="299.7"/>
-<circle class="w32" cx="604.2" cy="299.7" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w32" cx="604.2" cy="299.7" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="616.8" y2="292.8"/>
-<circle class="w33" cx="616.8" cy="292.8" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w33" cx="616.8" cy="292.8" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="628.9" y2="285.2"/>
-<circle class="w34" cx="628.9" cy="285.2" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w34" cx="628.9" cy="285.2" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="640.7" y2="277.0"/>
-<circle class="w35" cx="640.7" cy="277.0" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w35" cx="640.7" cy="277.0" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="652.0" y2="268.1"/>
-<circle class="w36" cx="652.0" cy="268.1" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w36" cx="652.0" cy="268.1" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="662.8" y2="258.7"/>
-<circle class="w37" cx="662.8" cy="258.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w37" cx="662.8" cy="258.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="673.1" y2="248.7"/>
-<circle class="w38" cx="673.1" cy="248.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w38" cx="673.1" cy="248.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="682.8" y2="238.2"/>
-<circle class="w39" cx="682.8" cy="238.2" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w39" cx="682.8" cy="238.2" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="692.0" y2="227.2"/>
-<circle class="w40" cx="692.0" cy="227.2" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w40" cx="692.0" cy="227.2" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="700.6" y2="215.7"/>
-<circle class="w41" cx="700.6" cy="215.7" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w41" cx="700.6" cy="215.7" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="708.5" y2="203.8"/>
-<circle class="w42" cx="708.5" cy="203.8" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w42" cx="708.5" cy="203.8" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="715.8" y2="191.4"/>
-<circle class="w43" cx="715.8" cy="191.4" r="6" fill="#7457E0" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w43" cx="715.8" cy="191.4" r="6" fill="#7C5FE0" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="722.5" y2="178.7"/>
-<circle class="w44" cx="722.5" cy="178.7" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w44" cx="722.5" cy="178.7" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="728.5" y2="165.7"/>
-<circle class="w45" cx="728.5" cy="165.7" r="6" fill="#3E2A9E" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w45" cx="728.5" cy="165.7" r="6" fill="#6A4FD8" stroke="#2EA66B" stroke-width="2"/>
 <line class="l" x1="480" y1="60" x2="733.7" y2="152.3"/>
-<circle class="w46" cx="733.7" cy="152.3" r="6" fill="#B9A8F5" stroke="#2EA66B" stroke-width="2"/>
+<circle class="w46" cx="733.7" cy="152.3" r="6" fill="#9A82F5" stroke="#2EA66B" stroke-width="2"/>
 <circle class="s" cx="480" cy="60" r="16"/>
 <circle class="p" cx="480" cy="60" r="16"/>
-<rect class="c" x="40" y="396" width="880" height="3"/>
-<circle cx="40" cy="372" r="6" fill="#B9A8F5" stroke="#888A" stroke-width="2"/><text x="52" y="377">1 credit</text>
-<circle cx="170" cy="372" r="6" fill="#7457E0" stroke="#888A" stroke-width="2"/><text x="182" y="377">2 to 5</text>
-<circle cx="300" cy="372" r="6" fill="#3E2A9E" stroke="#888A" stroke-width="2"/><text x="312" y="377">6 or more</text>
-<circle cx="430" cy="372" r="6" fill="#E5484D" stroke="#E5484D" stroke-width="2"/><text x="442" y="377">wrong fact caught</text>
-<circle cx="610" cy="372" r="6" fill="none" stroke="#2EA66B" stroke-width="2"/><text x="622" y="377">check passed</text>
-<text x="40" y="30">sim run, rule seat, dev seed 0</text>
-<text class="m" x="40" y="414">r47, bar 0.5, sample 1.0: 47 facts in, 3 wrong; 47 out, 3 wrong after checks; sim time 0 to 18 s</text>
+<rect class="c" x="40" y="378" width="880" height="3"/>
+<rect class="k" x="24" y="344" width="912" height="28" rx="6"/>
+<circle cx="40" cy="358" r="6" fill="#9A82F5" stroke="#8B949E" stroke-width="2"/><text x="52" y="363">1 credit</text>
+<circle cx="170" cy="358" r="6" fill="#7C5FE0" stroke="#8B949E" stroke-width="2"/><text x="182" y="363">2 to 5</text>
+<circle cx="300" cy="358" r="6" fill="#6A4FD8" stroke="#8B949E" stroke-width="2"/><text x="312" y="363">6 or more</text>
+<circle cx="430" cy="358" r="6" fill="#E5484D" stroke="#E5484D" stroke-width="2"/><text x="442" y="363">wrong fact caught</text>
+<circle cx="610" cy="358" r="6" fill="none" stroke="#2EA66B" stroke-width="2"/><text x="622" y="363">check passed</text>
+<rect class="k" x="24" y="12" width="300" height="28" rx="6"/><rect class="k" x="24" y="386" width="912" height="26" rx="6"/>
+<text x="38" y="31">sim run, rule seat, dev seed 0</text>
+<text class="m" x="38" y="403">r47, bar 0.5, sample 1.0: 47 facts in, 3 wrong; 47 out, 3 wrong after checks; sim time 0 to 18 s</text>
 </svg>
