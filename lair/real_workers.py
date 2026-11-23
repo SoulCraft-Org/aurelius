@@ -45,7 +45,7 @@ class RealWorker:
         try:
             fact = self._ask(item.key, used, read)
             status, facts = "completed", [fact]
-        except BAD:  # the type only is ever kept: no body, no answer text
+        except Exception:  # whatever it is, the spend is counted and nothing of the error is kept: no body, no answer text
             status, facts = "failed", []
         spent = {"credits": self.wtype["credits_per_call"], "seconds": round(time.monotonic() - start, 3), "tokens": used["tokens"]}
         return {"status": status, "facts": facts, "alarms": [], "spent": spent}
@@ -98,6 +98,7 @@ class RealWorker:
         if not isinstance(value, str) or not value.strip():
             raise ValueError("value must be a non-empty string")
         value = value.strip()
-        hit = [d for d, t in read.items() if value.lower() in t.lower()]  # seen: the value is in a document it read
-        source = doc if doc in hit else hit[0] if hit else doc if doc in read else "model"
+        word = re.compile(r"\b" + re.escape(value) + r"\b", re.I)  # whole words: a short value is not seen inside a longer one
+        hit = [d for d, t in read.items() if word.search(t)]  # seen: the value is in a document it read
+        source = doc if doc in hit else hit[0] if hit else None
         return {"claim": key, "value": value, "tag": "seen" if hit else "inferred", "source": source}
