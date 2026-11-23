@@ -1,4 +1,3 @@
-# Installed only inside the Modal image (train/serve.py reads this file). Never install it on a laptop.
-# vllm pins torch and flashinfer itself. Pins are releases at least 2 weeks old on 2026-11-23, read on PyPI that day.
+# Installed only inside the Modal image. vllm pins torch and flashinfer itself. Releases 2+ weeks old on 2026-11-23, read on PyPI.
 vllm==0.33.0
 transformers==5.20.2

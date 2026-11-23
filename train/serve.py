@@ -1,9 +1,7 @@
 """Score the untrained seat (Qwen/Qwen3.5-9B, Apache-2.0) on Modal's monthly credit, behind the spend guard (step 25, #67).
 
-One GPU container starts vLLM on its own localhost, scores each job with ladder.run, and ends. No public endpoint, nothing warm.
-Run it from the repo root. `python -I` leaves the repo off the path, so this file adds it:
-    MODAL_LIMIT_CHECKED=YYYY-MM uv run --with modal==1.6.4 python -I train/serve.py smoke
-    MODAL_LIMIT_CHECKED=YYYY-MM uv run --with modal==1.6.4 python -I train/serve.py score --job r10:dev:0-2:lock --job r47:dev:0
+One GPU container starts vLLM on its own localhost, scores each job with ladder.run, and ends. Commands: train/README.md.
+Launch from the repo root with `python -I train/serve.py`: -I drops the repo from the path, so this file adds it.
 """
 
 import argparse
@@ -23,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 
 MODEL, REVISION = "Qwen/Qwen3.5-9B", "c202236235762e1c871ad0ccb60c8ee5ba337b9a"  # Hugging Face's commit, read 2026-11-23
 GPU, GPU_USD_H = "L4", 0.80  # 24 GB; Modal's list price, $0.000222 a second, read 2026-11-23 (modal.com/pricing)
-TIMEOUT_S, START_S, BOOT_S, PORT, HF = 1800, 900, 60, 8000, "/opt/hf"  # hard stop; wait for vLLM; boot time added to the ledger (our estimate)
+TIMEOUT_S, START_S, BOOT_S, PORT, HF = 1800, 900, 180, 8000, "/opt/hf"  # hard stop; wait for vLLM; cold start the ledger adds (our estimate)
 LEDGER = ROOT / "ladder" / "spend.jsonl"
 REQS = [x for x in (ROOT / "train" / "requirements.txt").read_text().splitlines() if x and x[0] != "#"] if modal.is_local() else []
 
@@ -49,15 +47,15 @@ def _wait(proc, t0):  # until vLLM answers /health; a dead server or the START_S
 
 @app.function(image=image, gpu=GPU, timeout=TIMEOUT_S, max_containers=1, scaledown_window=2, single_use_containers=True)
 def run_jobs(jobs):
-    """Score each job on the model seat. Returns the score rows and the GPU seconds this container used."""
     t0 = time.monotonic()
     os.environ.update(SEAT_URL=f"http://localhost:{PORT}/v1/chat/completions", SEAT_MODEL=MODEL, SEAT_GPU_USD_H=str(GPU_USD_H))
     cmd = ["vllm", "serve", MODEL, "--revision", REVISION, "--served-model-name", MODEL, "--host", "127.0.0.1", "--port", str(PORT),
            "--max-model-len", "16384", "--max-num-seqs", "4", "--gpu-memory-utilization", "0.90", "--language-model-only", "--enforce-eager",
            "--enable-auto-tool-choice", "--tool-call-parser", "qwen3_coder",  # the model card's parser
            "--default-chat-template-kwargs", '{"enable_thinking": false}']  # thinking is on by default and would eat the 1024-token reply
-    proc, rows = subprocess.Popen(cmd), []
+    proc, rows, error = None, [], None
     try:
+        proc = subprocess.Popen(cmd)
         _wait(proc, t0)
         from ladder.run import score  # inside the container only: /root holds lair, ladder and spec
         for job in jobs:
@@ -69,13 +67,16 @@ def run_jobs(jobs):
                 rows.append(score(job["rung"], "model", tuple(job["seeds"]), "table", job["split"]))
             except Exception as err:  # one job's failure must not cost the rest; the type only, never a body
                 rows.append({"job": job, "error": type(err).__name__})
+    except Exception as err:  # the GPU time was spent: return it, so the ledger records it
+        error = type(err).__name__
     finally:
-        proc.terminate()
-        try:
-            proc.wait(30)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-    return {"rows": rows, "gpu_seconds": round(time.monotonic() - t0, 1)}
+        if proc:
+            proc.terminate()
+            try:
+                proc.wait(30)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+    return {"rows": rows, "gpu_seconds": round(time.monotonic() - t0, 1), **({"error": error} if error else {})}
 
 
 def _job(text):  # RUNG:SPLIT:SEEDS[:lock], SEEDS as 0,1,2 or 0-2
@@ -92,7 +93,7 @@ def main(argv=None):
     from ladder.run import check_split
     from lair import load_spec
     from train import guard
-    p = argparse.ArgumentParser(prog="python -I train/serve.py", description="Score the untrained seat on Modal behind the spend guard.")
+    p = argparse.ArgumentParser(prog="python -I train/serve.py")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("smoke", help="r10, dev seed 0, once, lock off")
     sub.add_parser("score", help="one or more jobs").add_argument("--job", action="append", required=True, help="RUNG:SPLIT:SEEDS[:lock]")
@@ -112,7 +113,7 @@ def main(argv=None):
         secs = result["gpu_seconds"] + BOOT_S if result else min(time.monotonic() - start, TIMEOUT_S)
         spend.append(LEDGER, spend.row(run_id, guard.LANE, GPU, round(secs, 1), GPU_USD_H, round(secs / 3600 * GPU_USD_H, 4), 0))
     print(json.dumps(result["rows"], indent=2))
-    print(f"{run_id}: {secs:.0f} GPU seconds, ${secs / 3600 * GPU_USD_H:.2f} of credit at list price (ledger row added)", file=sys.stderr)
+    print(f"{run_id}: {secs:.0f} GPU seconds, ${secs / 3600 * GPU_USD_H:.2f} at list price, ledger row added {result.get('error', '')}", file=sys.stderr)
 
 
 if __name__ == "__main__":
