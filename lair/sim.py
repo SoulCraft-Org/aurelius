@@ -16,8 +16,8 @@ class Sim:
 
     def at(self, delay, fn, *args):
         """Schedule fn(sim, *args) at now + delay."""
-        if delay < 0:
-            raise ValueError("delay must not be negative")
+        if not delay >= 0:  # also rejects NaN, which would break the heap order
+            raise ValueError("delay must be a number, not negative or NaN")
         heapq.heappush(self._queue, (self.now + delay, self._count, fn, args))
         self._count += 1
 
@@ -33,5 +33,7 @@ class Sim:
         return ran
 
     def record(self, kind, **data):
-        """Append a log row stamped with the current time."""
+        """Append a log row stamped with the current time. 't' and 'kind' are reserved."""
+        if "t" in data or "kind" in data:
+            raise ValueError("'t' and 'kind' are reserved in record()")
         self.log.append({"t": self.now, "kind": kind, **data})

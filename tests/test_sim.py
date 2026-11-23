@@ -73,6 +73,20 @@ class SimTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             Sim(1).at(-1, mark, "x")
 
+    def test_nan_delay_raises(self):
+        with self.assertRaises(ValueError):
+            Sim(1).at(float("nan"), mark, "x")
+
+    def test_record_reserves_t_and_kind(self):
+        with self.assertRaises(ValueError):
+            Sim(1).record("metric", t=5)
+
+    def test_event_at_exactly_until_runs(self):
+        sim = Sim(1)
+        sim.at(2, mark, "edge")
+        sim.run(until=2)
+        self.assertEqual([r["name"] for r in sim.log], ["edge"])
+
     def test_load_spec(self):
         self.assertEqual(len(load_spec()["actions"]), 5)
 
