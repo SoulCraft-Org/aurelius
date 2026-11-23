@@ -10,15 +10,14 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from ladder.models import ModelSeat
+from ladder.models import ModelSeat, view
 from lair import load_spec
 from lair.seat import validate_action
 
 
 def user_message(obs):
-    """The user turn exactly as ModelSeat.decide sends it: replies shown by status only."""
-    view = {**obs, "replies": {k: r["status"] for k, r in obs["replies"].items()}}
-    return json.dumps(view, sort_keys=True, separators=(",", ":"))
+    """The user turn exactly as ModelSeat.decide sends it: the seat's own view, one source for both."""
+    return json.dumps(view(obs), sort_keys=True, separators=(",", ":"))
 
 
 def split_of(spec, line):
