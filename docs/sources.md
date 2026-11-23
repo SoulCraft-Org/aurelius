@@ -61,7 +61,7 @@ Open a fold to see its rows.
 | A learned router matches the best single model for less | up to 31.7% lower cost | [arXiv 2601.07206](https://arxiv.org/abs/2601.07206) | paper |
 | A learned router, best case | up to 85% cheaper on MT-Bench 🗣️ | [RouteLLM](https://github.com/lm-sys/RouteLLM) | Apache-2.0 |
 | A cheaper call is not a cheaper finished task | | [Switchyard](https://github.com/NVIDIA-NeMo/Switchyard) | Apache-2.0 |
-| Price, context and tool support per model. We keep our own dated table and never republish theirs | | [OpenRouter models](https://openrouter.ai/docs/guides/overview/models), [terms](https://openrouter.ai/terms) | terms §7, §12 |
+| Price, context and tool support per model. We keep our own dated table and never republish theirs | | [OpenRouter models](https://openrouter.ai/docs/guides/overview/models), [terms](https://openrouter.ai/terms) | terms §7, §12: idea only, no text copied |
 | Tool-calling tests and reproducible evals | | [tool-bench](https://github.com/OpenRouterTeam/tool-bench), [benchmark-harness](https://github.com/OpenRouterTeam/benchmark-harness) | MIT, Apache-2.0 |
 
 </details>
