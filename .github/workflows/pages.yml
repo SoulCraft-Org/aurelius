@@ -15,6 +15,7 @@ on:
       - "spec/**"
       - "tests/**"
       - "quality/**"
+      - "docs/viewer/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -55,6 +56,9 @@ jobs:
           pages: process quality
           config: quality/process/config.json
           quality-config: quality/config.json
+
+      - name: Copy the 3D run viewer into the site
+        run: mkdir -p quality/dist/viewer && cp docs/viewer/index.html docs/viewer/run.json quality/dist/viewer/
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

@@ -70,17 +70,20 @@ class _Tap:
     def decide(self, obs):
         actions = self.seat.decide(obs)
         if not self.done:  # the first run ends at its report or stop
-            self.lines.append(json.dumps({**self.tag, "obs": obs, "actions": actions}, sort_keys=True))
+            self.lines.append(json.dumps({**self.tag, "obs": obs, "actions": actions}))
             self.done = any(a["name"] in ("report", "stop") for a in actions)
         return actions
 
 
 def transcripts(spec, pair, n=SEEDS):
-    """JSON lines, one per decision, on the first n dev seeds of each rung; run_once refuses val and test seeds."""
+    """JSON lines, one per decision, on the first n dev seeds of each rung; run_once refuses val and test seeds. Each line has split and the final reward."""
     lines = []
     for rung, seed in product(RUNGS, seeds(spec, "dev", n)):
-        tap = _Tap(RuleSeat(spec, bar=pair[0], sample=pair[1]), lines, rung=rung, seed=seed)
-        run_once(rung, "rule", spec, seed, model=tap, split="dev")
+        mine = []
+        tap = _Tap(RuleSeat(spec, bar=pair[0], sample=pair[1]), mine, rung=rung, seed=seed, split="dev")
+        log = run_once(rung, "rule", spec, seed, model=tap, split="dev")
+        reward = next(r["grade"] for r in log if r["kind"] == "final")
+        lines += [json.dumps({**json.loads(line), "reward": reward}, sort_keys=True) for line in mine]
     return lines
 
 

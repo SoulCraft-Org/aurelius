@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurelius run viewer</title>
+<style>
+:root{--bg:#fff;--fg:#1f2328;--mute:#59636e;--line:#8b949e;--seat:#9a6700;--c1:#8f75f0;--c2:#7c5fe0;--c3:#5a3fc8;--bad:#d1242f;--ok:#1a7f4b;--idle:#8b949e;--chip:#f6f8fa}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mute:#9198a1;--seat:#d4a72c;--c1:#9a82f5;--c2:#7c5fe0;--c3:#6a4fd8;--bad:#f85149;--ok:#3fb950;--chip:#161b22}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto}
+h1{font-size:1.25rem;margin:0 0 4px}
+p{margin:4px 0;color:var(--mute)}
+canvas{display:block;width:100%;height:min(70vh,520px);margin:12px 0;background:var(--chip);border-radius:8px;touch-action:none;cursor:grab}
+canvas:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--c2);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:8px 0}
+button{font:inherit;color:var(--fg);background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:6px 14px;min-height:40px;cursor:pointer}
+button[aria-pressed=true]{border-color:var(--c2);box-shadow:inset 0 0 0 1px var(--c2)}
+button:disabled{opacity:.5;cursor:default}
+input[type=range]{flex:1 1 200px;min-height:40px}
+ul{display:flex;flex-wrap:wrap;gap:6px 18px;list-style:none;margin:8px 0;padding:0}
+li{display:flex;align-items:center;gap:6px}
+li i{width:14px;height:14px;border-radius:50%;border:2px solid var(--idle);display:inline-block}
+</style>
+</head>
+<body>
+<main>
+<h1>Aurelius run viewer</h1>
+<p id="cap">Loading the run.</p>
+<canvas id="cv" tabindex="0" role="img" aria-label="The run's 47 workers under one seat in 3D. Drag or use the arrow keys to turn it."></canvas>
+<div class="row">
+  <button id="play">Play</button>
+  <input id="t" type="range" min="0" max="1" step="0.01" value="1" aria-label="Time in the run">
+  <output id="out" for="t"></output>
+</div>
+<div class="row" role="group" aria-label="Colour by">
+  <button id="m-cost" aria-pressed="true">Colour by cost</button>
+  <button id="m-err" aria-pressed="false">Colour by errors</button>
+</div>
+<ul id="legend" aria-label="Legend"></ul>
+</main>
+<script>
+"use strict";
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let run = null, mode = "cost", yaw = 0.6, pitch = 0.35, now = 0, playing = false, last = 0;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const LEGEND = {
+  cost: [["--c1", "1 credit"], ["--c2", "2 to 5"], ["--c3", "6 or more"], ["--idle", "no reply yet"]],
+  err: [["--bad", "wrong fact caught"], ["--ok", "reply passed"], ["--idle", "no reply yet"]]
+};
+
+// The state of every node at time t: credits spent so far, and whether its latest reply was caught wrong.
+function stateAt(t) {
+  const st = run.nodes.map(() => ({ cost: 0, replied: false, wrong: false, age: 1e9 }));
+  for (const e of run.events) {
+    if (e.t > t) break;
+    const s = st[e.node];
+    s.cost += e.cost;
+    if (e.kind === "reply") { s.replied = true; s.wrong = e.wrong; s.age = t - e.t; }
+  }
+  return st;
+}
+
+function colour(s) {
+  if (mode === "err") return s.replied ? css(s.wrong ? "--bad" : "--ok") : css("--idle");
+  if (!s.replied) return css("--idle");
+  return css(s.cost >= 6 ? "--c3" : s.cost >= 2 ? "--c2" : "--c1");
+}
+
+function project(n, w, h) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const x1 = n.x * cy + n.z * sy, z1 = -n.x * sy + n.z * cy;
+  const y2 = n.y * cp - z1 * sp, z2 = n.y * sp + z1 * cp;
+  const k = 3 / (3 + z2), u = Math.min(w, h * 1.2) * 0.42;
+  return { x: w / 2 + x1 * k * u, y: h / 2 - y2 * k * u, k, z: z2 };
+}
+
+function draw() {
+  const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  if (!run) return;
+  const st = stateAt(now), p = run.nodes.map(n => project(n, w, h));
+  ctx.strokeStyle = css("--line"); ctx.globalAlpha = 0.4; ctx.lineWidth = 1;
+  for (let i = 1; i < p.length; i++) { ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.lineTo(p[i].x, p[i].y); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  const order = p.map((_, i) => i).sort((a, b) => p[b].z - p[a].z);
+  for (const i of order) {
+    const s = st[i], q = p[i], r = (i ? 6 : 12) * q.k;
+    ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 7);
+    ctx.fillStyle = i ? colour(s) : css("--seat"); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = i && mode === "err" && s.replied && s.wrong ? css("--bad") : css("--line"); ctx.stroke();
+    if (playing && !still && s.age < 1) { ctx.beginPath(); ctx.arc(q.x, q.y, r + 10 * s.age * q.k, 0, 7); ctx.strokeStyle = css("--fg"); ctx.globalAlpha = 1 - s.age; ctx.stroke(); ctx.globalAlpha = 1; }
+  }
+  const done = st.filter((s, i) => i && s.replied).length;
+  $("out").textContent = `t = ${now.toFixed(1)} of ${run.meta.end} s, ${done} of ${run.nodes.length - 1} workers replied`;
+}
+
+function legend() {
+  $("legend").replaceChildren(...LEGEND[mode].map(([v, label]) => {
+    const li = document.createElement("li"), dot = document.createElement("i");
+    dot.style.background = mode === "err" || v === "--idle" ? "transparent" : `var(${v})`;
+    if (mode === "err" && v !== "--idle") dot.style.borderColor = `var(${v})`;
+    li.append(dot, label); return li;
+  }));
+}
+
+function setMode(m) {
+  mode = m; $("m-cost").setAttribute("aria-pressed", m === "cost"); $("m-err").setAttribute("aria-pressed", m === "err");
+  legend(); draw();
+}
+
+function tick(ts) {
+  if (!playing) return;
+  now = Math.min(run.meta.end, now + (ts - last) / 1000 * run.meta.end / 12); last = ts;
+  $("t").value = now / run.meta.end;
+  if (now >= run.meta.end) setPlay(false);
+  draw();
+  if (playing) requestAnimationFrame(tick);
+}
+
+function setPlay(on) {
+  playing = on; $("play").textContent = on ? "Pause" : "Play";
+  if (on) { if (now >= run.meta.end) now = 0; last = performance.now(); requestAnimationFrame(tick); }
+}
+
+fetch("run.json").then(r => r.json()).then(j => {
+  run = j; const m = j.meta; now = m.end;
+  $("cap").textContent = `${m.label} run, ${m.seat} seat, dev seed ${m.seed}: ${m.rung}, bar ${m.bar}, ${m.facts_in} facts in, ${m.wrong_in} wrong; ${m.wrong_out} wrong after checks. Simulated, not a real run.`;
+  $("play").disabled = still; if (still) $("play").title = "Motion is off in your settings: use the slider.";
+  legend(); draw();
+}).catch(() => { $("cap").textContent = "The run data did not load. Serve this folder over http, not file."; });
+
+$("play").onclick = () => setPlay(!playing);
+$("t").oninput = e => { setPlay(false); now = e.target.value * run.meta.end; draw(); };
+$("m-cost").onclick = () => setMode("cost");
+$("m-err").onclick = () => setMode("err");
+let drag = null;
+cv.onpointerdown = e => { drag = e; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; };
+cv.onpointermove = e => { if (!drag) return; yaw += (e.clientX - drag.clientX) / 150; pitch = Math.max(-1.4, Math.min(1.4, pitch + (e.clientY - drag.clientY) / 150)); drag = e; draw(); };
+cv.onpointerup = cv.onpointercancel = () => { drag = null; cv.style.cursor = ""; };
+cv.onkeydown = e => {
+  const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (d) { e.preventDefault(); yaw += d[0] * 0.15; pitch = Math.max(-1.4, Math.min(1.4, pitch + d[1] * 0.15)); draw(); }
+};
+addEventListener("resize", draw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+</script>
+</body>
+</html>
