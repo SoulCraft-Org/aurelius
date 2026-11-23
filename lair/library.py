@@ -1,10 +1,10 @@
 """The Library: a generated document corpus that real workers search.
 
-Each task item gets documents that state its answer. Knobs add near-miss
-distractors, older superseded documents and filler. All randomness comes from
-the random.Random(seed) made here, so one task, seed and knob set give one corpus.
+Each item gets documents that state its answer; knobs add near-miss distractors,
+superseded documents and filler. All randomness is seeded, one corpus per task, seed and knobs.
 """
 
+import heapq
 import math
 import random
 import re
@@ -21,9 +21,21 @@ STATE = (
 FILLER = (
     "The register is reviewed every quarter by the desk.",
     "Entries are copied from the field sheets without edits.",
-    "Questions about format go to the records office.",
-    "This page was printed on recycled paper.",
     "Older volumes sit on the second shelf.",
+)
+OLD_CUES = ("superseded", "out of date", "no longer in force")
+OLD = (
+    "Superseded: {key} was once recorded as {v}; a later entry replaces {key}.",
+    "Out of date, replaced by a later filing: {key} read {v} (see {key}).",
+    "Archive copy, no longer in force: {key} stood at {v}.",
+)
+FIX = (  # each gives the wrong value, then the true one; no word is shared by more than two
+    "Revised entry, {key}: {wrong} amended to {v}.",
+    "Version 2 drops {wrong} for {key} and now gives {v}.",
+    "Notice dated later: {wrong} is wrong for {key}, right figure {v}.",
+    "Errata sheet. In {key}, {wrong} appeared where {v} belongs.",
+    "Memo replaces the figure in {key} ({wrong}) with {v}.",
+    "Fixed after audit; {key} showed {wrong} but should show {v}.",
 )
 
 
@@ -38,25 +50,33 @@ class Library:
         self.docs = dict(docs)
         self.k1, self.b = k1, b
         self.order = {d: i for i, d in enumerate(self.docs)}
-        self.tf = {d: Counter(tokens(t)) for d, t in self.docs.items()}
-        self.len = {d: sum(c.values()) for d, c in self.tf.items()}
+        self.len = {}
+        self.post = {}  # word -> {doc_id: count}
+        for d, t in self.docs.items():
+            words = tokens(t)
+            self.len[d] = len(words)
+            for w, c in Counter(words).items():
+                self.post.setdefault(w, {})[d] = c
         self.avg = sum(self.len.values()) / max(len(self.len), 1)
-        self.df = Counter(w for c in self.tf.values() for w in c)
 
     def doc(self, doc_id):
         return self.docs[doc_id]
 
+    def scores(self, query):
+        """BM25 score of every document that holds a query word."""
+        n, out = len(self.docs), {}
+        for w in set(tokens(query)):
+            post = self.post.get(w, {})
+            idf = math.log(1 + (n - len(post) + 0.5) / (len(post) + 0.5))
+            for d, c in post.items():
+                norm = 1 - self.b + self.b * self.len[d] / self.avg
+                out[d] = out.get(d, 0.0) + idf * c * (self.k1 + 1) / (c + self.k1 * norm)
+        return out
+
     def search(self, query, k=5):
         """Top k (doc_id, text) by BM25; ties go to the earlier document."""
-        n = len(self.docs)
-        scores = {}
-        for w in set(tokens(query)):
-            idf = math.log(1 + (n - self.df[w] + 0.5) / (self.df[w] + 0.5))
-            for d, c in self.tf.items():
-                if w in c:
-                    norm = 1 - self.b + self.b * self.len[d] / self.avg
-                    scores[d] = scores.get(d, 0.0) + idf * c[w] * (self.k1 + 1) / (c[w] + self.k1 * norm)
-        best = sorted(scores, key=lambda d: (-scores[d], self.order[d]))[:k]
+        sc = self.scores(query)
+        best = heapq.nlargest(k, sc, key=lambda d: (sc[d], -self.order[d]))
         return [(d, self.docs[d]) for d in best]
 
 
@@ -73,24 +93,30 @@ def off_by_one(rng, v):
     return v[:i] + rng.choice([c for c in "0123456789abcdef" if c != v[i]]) + v[i + 1:]
 
 
+def sub(seed, name, kind):
+    """One generator per item and kind, so a knob never shifts another kind's draws."""
+    return random.Random(f"{seed}:{name}:{kind}")
+
+
 def make_library(task, seed, distractors=0, conflicts=0.0, noise=0.0):
     """Build the corpus for a task. noise is filler sentences per document, on average."""
-    rng = random.Random(seed)
-    texts = []
+    texts = {}
     for it in task.items:
-        shown = off_by_one(rng, it.answer) if it.fault else it.answer
-        texts.append(rng.choice(STATE).format(key=it.key, v=shown))
+        k, r = it.key, sub(seed, it.key, "main")
+        shown = off_by_one(r, it.answer) if it.fault else it.answer
+        texts[f"{k}:main"] = r.choice(STATE).format(key=k, v=shown)
         if it.fault:
-            texts.append(f"Correction: {it.key} was wrongly given as {shown}; the corrected value is {it.answer}.")
-        if rng.random() < conflicts:
-            old = hexval(rng, (it.answer,))
-            texts.append(f"Superseded: {it.key} was once recorded as {old}; a later entry replaces {it.key}.")
+            texts[f"{k}:fix"] = sub(seed, k, "fix").choice(FIX).format(key=k, wrong=shown, v=it.answer)
+        r = sub(seed, k, "conflict")
+        if r.random() < conflicts:
+            texts[f"{k}:old"] = r.choice(OLD).format(key=k, v=hexval(r, (it.answer,)))
+        r = sub(seed, k, "near")
         for j in range(distractors):
-            texts.append(rng.choice(STATE).format(key=f"{it.key}-v{j}", v=hexval(rng, (it.answer,))))
-    rng.shuffle(texts)
+            texts[f"{k}:near{j}"] = r.choice(STATE).format(key=f"{k}-v{j}", v=hexval(r, (it.answer,)))
     docs = {}
-    for i, text in enumerate(texts):
-        parts = [text] + [rng.choice(FILLER) for _ in range(int(noise) + (rng.random() < noise % 1))]
-        rng.shuffle(parts)
-        docs[f"d{i}"] = " ".join(parts)
+    for d in sorted(texts, key=lambda d: sub(seed, d, "rank").random()):
+        r = sub(seed, d, "noise")
+        parts = [texts[d]] + [r.choice(FILLER) for _ in range(int(noise) + (r.random() < noise % 1))]
+        r.shuffle(parts)
+        docs[d] = " ".join(parts)
     return Library(docs)
