@@ -210,11 +210,12 @@ def _hash(text):
 def stamp(spec, seat, model=None):
     """The version stamp on a score row. The spec hash covers the spec as written, before --rates.
 
-    A later step fills revision, adapter and prompt by setting those attributes on the seat.
+    A later step fills revision, adapter and prompt by setting those attributes on the seat; the prompt is stamped as a hash.
     """
     canon = json.dumps(spec, sort_keys=True, separators=(",", ":"))
+    text = getattr(model, "prompt", None) or getattr(model, "system", None)  # ModelSeat keeps its prompt in system
     return {"spec": _hash(canon), "seat": seat, "model": getattr(model, "model", MODEL) if model else None,
-            **{k: getattr(model, k, None) for k in ("revision", "adapter", "prompt")}}
+            **{k: getattr(model, k, None) for k in ("revision", "adapter")}, "prompt": _hash(text) if text else None}
 
 
 def check_split(spec, split, seeds):

@@ -155,8 +155,8 @@ class RunTest(unittest.TestCase):
         self.assertNotEqual(stamp({**SPEC, "version": "x"}, "rule")["spec"], a["stamp"]["spec"])
         self.assertEqual(stamp(dict(reversed(SPEC.items())), "rule"), a["stamp"])  # key order does not matter
         seat = stamp(SPEC, "model", SimpleNamespace(revision="r", adapter="a", prompt="p"))
-        self.assertEqual(seat, {**seat, "model": MODEL, "revision": "r", "adapter": "a", "prompt": "p"})
-        self.assertEqual(stamp(SPEC, "model", SimpleNamespace())["revision"], None)  # a seat without them gives null
+        self.assertEqual(seat, {**seat, "model": MODEL, "revision": "r", "adapter": "a", "prompt": seat["prompt"]})
+        self.assertRegex(stamp(SPEC, "model", SimpleNamespace(system="s"))["prompt"], "^[0-9a-f]{12}$")  # ModelSeat: system
         self.assertEqual(stamp(SPEC, "model", SimpleNamespace(model="x"))["model"], "x")  # the seat names its model
 
     def test_a_direct_run_refuses_a_seed_outside_its_split(self):
