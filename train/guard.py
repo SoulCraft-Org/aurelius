@@ -1,8 +1,8 @@
 """The spend guard for a Modal run. Stdlib only, no Modal import. It refuses on any doubt: unreadable input is a refusal."""
 
 import json
+import math
 import os
-import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -17,39 +17,42 @@ class Refused(Exception):
 
 
 def worst_usd(timeout_s, usd_per_hour):
-    """The most one container can cost: its hard timeout at the list price."""
     return timeout_s / 3600 * usd_per_hour
 
 
-def _usd(x):  # "12.5", "$1,200.50" or a number; refuses nan, inf, a negative and a bool
+def _usd(x, signed=False):  # "12.5", "$1,200.50" or a number; refuses nan, inf, a bool and, unless signed, a negative
     try:
         v = Decimal(str(x).strip().replace("$", "").replace(",", ""))
     except InvalidOperation:
         raise Refused(f"not a dollar amount: {str(x)[:20]!r}") from None
-    if isinstance(x, bool) or not v.is_finite() or v < 0:
+    if isinstance(x, bool) or not v.is_finite() or (v < 0 and not signed):
         raise Refused(f"not a dollar amount: {str(x)[:20]!r}")
     return float(v)
 
 
-def read_billing(run=subprocess.run):
-    """`modal billing summary --json` for this month: a dict, or a refusal."""
+_keys = lambda d: {str(k).strip().lower().replace(" ", "_"): v for k, v in d.items()}  # Title Case and snake_case keys read the same
+
+
+def read_billing(month, run=subprocess.run):
+    """`modal billing summary --for YYYY-MM --json`, the month the ledger is read for."""
     try:
-        out = run([sys.executable, "-m", "modal", "billing", "summary", "--json"], capture_output=True, text=True, timeout=60, check=True)
+        out = run([sys.executable, "-m", "modal", "billing", "summary", "--for", month, "--json"], capture_output=True, text=True, timeout=60, check=True)
         return json.loads(out.stdout)
     except (OSError, ValueError, subprocess.SubprocessError) as err:
         raise Refused(f"cannot read the billing summary ({type(err).__name__})") from None
 
 
 def credit_left(billing):
-    """The month's credit minus the metered cost. Title Case and snake_case keys both read. Refuses if money is being billed."""
+    """The month's credit minus the credit used (the magnitude of adjustments.credits). metered_cost is gross, so it is not read."""
     if not isinstance(billing, dict):
         raise Refused("the billing summary is not an object")
-    got = {str(k).strip().lower().replace(" ", "_"): v for k, v in billing.items()}
-    if "metered_cost" not in got or "billed_cost" not in got:
-        raise Refused("the billing summary has no metered_cost or billed_cost")
+    got = _keys(billing)
+    adj = got.get("adjustments")
+    if "billed_cost" not in got or not isinstance(adj, dict) or "credits" not in _keys(adj):
+        raise Refused("the billing summary has no billed_cost or adjustments.credits")
     if _usd(got["billed_cost"]) > 0:
         raise Refused("this month already bills money: the credit is gone")
-    return CREDIT_USD - _usd(got["metered_cost"])
+    return CREDIT_USD - abs(_usd(_keys(adj)["credits"], signed=True))
 
 
 def month_spend(path, month):
@@ -63,15 +66,13 @@ def month_spend(path, month):
     for line in lines:
         try:
             r = json.loads(line)
-            if not isinstance(r, dict):
-                raise ValueError
             if r.get("lane") != LANE:
                 continue
-            if not re.match(r"\d{4}-\d{2}-\d{2}", str(r["run_id"])):
-                raise ValueError
-            if str(r["run_id"])[:7] == month:
+            day = str(r["run_id"])[:10]
+            datetime.strptime(day, "%Y-%m-%d")  # a Modal row's run_id starts with its date, or the row is unreadable
+            if day[:7] == month:
                 total += _usd(r["credits_usd"]) + _usd(r["billed_usd"])
-        except (ValueError, KeyError, Refused):
+        except (ValueError, KeyError, AttributeError, Refused):
             raise Refused("the spend ledger has a Modal row it cannot read") from None
     return total
 
@@ -96,6 +97,8 @@ def check(billing, spent_usd, worst, limit_checked, month):
 
 def ensure(worst, ledger, env=os.environ, now=None, run=subprocess.run):
     """The whole guard: read the bill and the ledger, then check. Returns the month on a pass."""
+    if isinstance(worst, bool) or not isinstance(worst, (int, float)) or not math.isfinite(worst) or worst <= 0:
+        raise Refused("the planned worst case must be a number above 0")
     month = (now or datetime.now(timezone.utc)).strftime("%Y-%m")
-    check(read_billing(run), month_spend(ledger, month), worst, env.get("MODAL_LIMIT_CHECKED"), month)
+    check(read_billing(month, run), month_spend(ledger, month), worst, env.get("MODAL_LIMIT_CHECKED"), month)
     return month
