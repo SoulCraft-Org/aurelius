@@ -1,7 +1,7 @@
 """LoRA-tune Qwen/Qwen3.5-9B on a lessons file in a Modal Volume, behind the spend guard (step 32, #76). Commands: train/README.md.
 One GPU container trains, saves the adapter, its sha256 and the config to the Volume, and ends. Launch with `python -I train/sft.py run ...`."""
 
-import argparse, functools, hashlib, json, math, sys, time  # noqa: E401
+import argparse, hashlib, json, math, sys, time  # noqa: E401
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 MODEL, REVISION = "Qwen/Qwen3.5-9B", "c202236235762e1c871ad0ccb60c8ee5ba337b9a"  # Hugging Face's commit, read 2026-11-23
 GPU, GPU_USD_H = "L40S", 1.95  # 48 GB; Modal's list price, $0.000542 a second, read 2026-11-23 (modal.com/pricing)
-TIMEOUT_S, BOOT_S, HF, VOL = 7200, 180, "/opt/hf", "/vol"  # hard stop; cold start the ledger adds (our estimate); weights cache; Volume mount
+TIMEOUT_S, BOOT_S, HF, VOL = 5400, 180, "/opt/hf", "/vol"  # hard stop; cold start the ledger adds (our estimate); weights cache; Volume mount
 LEDGER = ROOT / "ladder" / "spend.jsonl"
 REQS = [x for x in (ROOT / "train" / "requirements-sft.txt").read_text().splitlines() if x and x[0] != "#"] if modal.is_local() else []
 
@@ -24,9 +24,7 @@ image = (modal.Image.from_registry("nvidia/cuda:12.9.0-devel-ubuntu22.04", add_p
          .env({"HF_HUB_OFFLINE": "1"}))
 
 
-def lora_kwargs(rank, alpha_x=1):  # peft.LoraConfig values: rank 16 or 32, alpha = rank or 2 x rank, every linear layer of the text model
-    if rank not in (16, 32) or alpha_x not in (1, 2):
-        raise ValueError("rank must be 16 or 32 and alpha_x 1 or 2")
+def lora_kwargs(rank, alpha_x=1):  # peft.LoraConfig values: alpha = rank or 2 x rank (the CLI allows rank 16 or 32), every linear layer of the text model
     return {"r": rank, "lora_alpha": rank * alpha_x, "target_modules": "all-linear", "lora_dropout": 0.0, "bias": "none", "task_type": "CAUSAL_LM"}
 
 
@@ -36,9 +34,8 @@ def train_kwargs(rows, epochs=1):  # trl.SFTConfig values; loss on the completio
             "report_to": "none", "logging_steps": 10, "seed": 0}
 
 
-def no_thinking(tok):  # serving turns thinking off, so training renders the chat template with enable_thinking=False too
-    tok.apply_chat_template = functools.partial(tok.apply_chat_template, enable_thinking=False)  # a caller's own keyword still wins
-    return tok
+def no_thinking(data):  # serving turns thinking off, so every row asks the chat template for enable_thinking=False (TRL reads this column)
+    return data.map(lambda _: {"chat_template_kwargs": {"enable_thinking": False}})
 
 
 def record(out, cfg):  # the adapter's sha256 goes into the config, written beside the adapter
@@ -57,24 +54,26 @@ def tune(lessons, run_id, rank, alpha_x, epochs):  # lessons: a path inside the 
         from peft import LoraConfig
         from transformers import AutoTokenizer, Qwen3_5ForCausalLM  # the text model alone: no vision tower to adapt, no image processor
         from trl import SFTConfig, SFTTrainer
-        model, data = Qwen3_5ForCausalLM.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16), load_dataset("json", data_files=f"{VOL}/{lessons}", split="train")
+        model, data = Qwen3_5ForCausalLM.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16), no_thinking(load_dataset("json", data_files=f"{VOL}/{lessons}", split="train"))
         cfg = train_kwargs(len(data), epochs)
         trainer = SFTTrainer(model=model, args=SFTConfig(output_dir=out, **cfg), peft_config=LoraConfig(**lora_kwargs(rank, alpha_x)), train_dataset=data,
-                             processing_class=no_thinking(AutoTokenizer.from_pretrained(MODEL, revision=REVISION)))
+                             processing_class=AutoTokenizer.from_pretrained(MODEL, revision=REVISION))
         loss = trainer.train().training_loss
         trainer.save_model(out)
-        info = record(out, {"run_id": run_id, "model": MODEL, "revision": REVISION, "lessons": lessons, "gpu": GPU, "train_loss": loss,
-                            "lora": lora_kwargs(rank, alpha_x), "train": cfg})
-        volume.commit()
+        try:
+            info = record(out, {"run_id": run_id, "model": MODEL, "revision": REVISION, "lessons": lessons, "gpu": GPU, "train_loss": loss,
+                                "lora": lora_kwargs(rank, alpha_x), "train": cfg})
+        finally:  # the adapter is saved: a failure above must not lose it
+            volume.commit()
     except Exception as err:  # the type only, never a body
         error = type(err).__name__
     return {"path": f"adapters/{run_id}", "info": info, "gpu_seconds": round(time.monotonic() - t0, 1), **({"error": error} if error else {})}
 
 
-def _lessons_path(text):  # an argparse type: a relative path inside the Volume, no ".."
+def _lessons_path(text):  # an argparse type: a file under lessons/dev/, where step 31 keeps its dev-seed lessons: never val or test seeds
     p = PurePosixPath(text)
-    if not text or p.is_absolute() or ".." in p.parts:
-        raise argparse.ArgumentTypeError(f"not a path inside the Volume: {text[:40]!r}")
+    if p.parts[:2] != ("lessons", "dev") or len(p.parts) < 3 or ".." in p.parts:
+        raise argparse.ArgumentTypeError(f"not a file under lessons/dev/: {text[:40]!r}")
     return str(p)
 
 
@@ -85,7 +84,7 @@ def main(argv=None):
     r = p.add_subparsers(dest="cmd", required=True).add_parser("run")
     r.add_argument("--lessons", type=_lessons_path, required=True, help="path inside the Volume, from step 31")
     r.add_argument("--rank", type=int, choices=(16, 32), default=16)
-    r.add_argument("--alpha-x", type=int, choices=(1, 2), default=1, help="alpha = rank times this")
+    r.add_argument("--alpha-x", type=int, choices=(1, 2), default=1, help="alpha = rank times this; the default alpha is the rank")
     r.add_argument("--epochs", type=int, choices=(1, 2, 3), default=1)
     args = p.parse_args(argv)
     try:
@@ -101,6 +100,8 @@ def main(argv=None):
         spend.append(LEDGER, spend.row(run_id, guard.LANE, GPU, round(secs, 1), GPU_USD_H, round(secs / 3600 * GPU_USD_H, 4), 0))
     print(json.dumps({"path": result["path"], "adapter_sha256": result["info"].get("adapter_sha256"), "config": result["info"]}, indent=2))
     print(f"{run_id}: {secs:.0f} GPU seconds, ${secs / 3600 * GPU_USD_H:.2f} at list price, ledger row added {result.get('error', '')}", file=sys.stderr)
+    if "error" in result:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
