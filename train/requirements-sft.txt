@@ -1,0 +1,9 @@
+# Installed only inside the Modal image of train/sft.py. Releases 2+ weeks old on 2026-11-23, read on PyPI; requires_dist checked by hand, not resolved on this Mac.
+torch==2.15.0
+transformers==5.22.2
+trl==1.17.1
+peft==0.21.2
+accelerate==1.15.0
+datasets==5.1.0
+huggingface_hub==2.4.0
+flash-linear-attention==0.6.0
