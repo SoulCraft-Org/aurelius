@@ -1,5 +1,6 @@
 """Unit tests for the step-by-step Lair environment."""
 
+import copy
 import unittest
 
 from ladder.env import LairEnv
@@ -8,6 +9,19 @@ from lair import load_spec
 from lair.seat import RuleSeat
 
 SPEC = load_spec()
+ORDER = {**RuleSeat(SPEC).order, "budget": {"credits": 1, "seconds": 1}}
+
+
+def send(wtype, keys):
+    return {"name": "map", "children": keys, "worker_type": wtype, "order": ORDER}
+
+
+def look(keys):
+    return {"name": "check", "children": keys, "sample": 1}
+
+
+def state(env):
+    return copy.deepcopy((env.leaf.observe(), env.log, env.leaf.rounds))
 
 
 def drive(env, rung, seed):
@@ -41,6 +55,43 @@ class EnvTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 env.act([bad])
         self.assertEqual(env.log, [])
+
+    def test_a_refused_act_changes_nothing(self):
+        env = LairEnv(SPEC)
+        env.act(RuleSeat(SPEC).decide(env.reset("r10", 0)))
+        got = next(k for k, r in env.leaf.replies.items() if r["status"] == "completed")
+        before = state(env)
+        for acts in ([send("small", ["k0", "k99"])], [look(["k99"])], [look([got, got])], [send("small", [got])],
+                     [send("small", [])], [send("small", ["k0"]), send("small", ["k0"])]):
+            with self.assertRaises(ValueError):
+                env.act(acts)
+            self.assertEqual(state(env), before)
+
+    def test_a_list_that_costs_more_than_the_budget_is_refused(self):
+        env = LairEnv(SPEC)
+        env.reset("r10", 0)
+        env.leaf.left = 9  # ten small calls would cost 10
+        before, keys = state(env), [f"k{i}" for i in range(10)]
+        for acts in ([send("small", keys)], [send("medium", keys[:3])],
+                     [send("small", keys[:5]), send("small", keys[5:])]):
+            with self.assertRaises(ValueError):
+                env.act(acts)
+            self.assertEqual(state(env), before)
+
+    def test_obs_holds_no_truth_and_log_is_a_copy(self):
+        env = LairEnv(SPEC)
+        obs, _ = env.act(RuleSeat(SPEC).decide(env.reset("r10", 0)))
+        names = []
+
+        def walk(x):
+            for k, v in x.items() if isinstance(x, dict) else enumerate(x) if isinstance(x, list) else ():
+                names.append(k)
+                walk(v)
+
+        walk(obs)
+        self.assertFalse({"answer", "wrong_in", "wrong_out"} & {*names})
+        env.log.append({"kind": "x"})
+        self.assertNotIn({"kind": "x"}, env.log)
 
     def test_a_seed_outside_the_split_or_another_rung_is_refused(self):
         env = LairEnv(SPEC)
