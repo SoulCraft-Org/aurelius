@@ -36,14 +36,12 @@ The worst case is the 30 minute timeout at the L4 list price, $0.40 ([Modal pric
 
 ## LoRA tune
 
-Step 32, [issue #76](https://github.com/SoulCraft-Org/aurelius/issues/76). `train/sft.py` tunes Qwen3.5-9B with LoRA on the step 31 lessons in the Modal Volume `aurelius-train`: all linear layers of the text model, learning rate 2e-4, bf16, one epoch. It saves the adapter, its sha256 and the config to `adapters/<run id>/` and prints them. Rows are `{"prompt": [...], "completion": [...], "tools": [...]}`, so the loss falls on the completion only ([TRL](https://huggingface.co/docs/trl/sft_trainer), read 2026-11-23). Pins: `requirements-sft.txt`.
+Step 32, [issue #76](https://github.com/SoulCraft-Org/aurelius/issues/76). `train/sft.py` tunes Qwen3.5-9B with LoRA on the step 31 lessons in the Modal Volume `aurelius-train`: all linear layers of the text model, learning rate 2e-4, bf16, one epoch. It saves the adapter, its sha256 and the config to `adapters/<run id>/` and prints them. Rows are `{"prompt": [...], "completion": [...], "tools": [...]}`, so the loss falls on the completion only ([TRL](https://huggingface.co/docs/trl/sft_trainer), read 2026-11-23). Thinking is off in training, as in serving. Pins: `requirements-sft.txt`; torch 2.15 brings CUDA 13 wheels, which Modal's L4 took in the step 25 smoke, and the first run confirms it on the L40S.
 
 `MODAL_LIMIT_CHECKED=2026-11 uv run --with modal==1.6.4 python -I train/sft.py run --lessons lessons/v1.jsonl --rank 16`
-
 Rank is 16 or 32, `--alpha-x 2` doubles alpha (default alpha = rank), `--epochs` is 1 to 3.
 
 | Part | Value |
 | --- | --- |
 | GPU | L40S, 48 GB, $1.95 an hour ([Modal pricing](https://modal.com/pricing), read 2026-11-23). BF16 weights are about 19 GB, too much for a 24 GB L4 or A10 once activations are added. The A100 40 GB lists at $2.10 |
-| Worst case for the guard | The 2 hour timeout at list price, $3.90 |
 | Cost, our estimate | About 900 tokens a second (35% of 181 TFLOPS dense bf16, 8 FLOPs per parameter per token). 2 million lesson tokens take about 40 minutes plus 3 of boot, or $1.40. Not measured |

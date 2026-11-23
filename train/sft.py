@@ -1,7 +1,7 @@
 """LoRA-tune Qwen/Qwen3.5-9B on a lessons file in a Modal Volume, behind the spend guard (step 32, #76). Commands: train/README.md.
 One GPU container trains, saves the adapter, its sha256 and the config to the Volume, and ends. Launch with `python -I train/sft.py run ...`."""
 
-import argparse, hashlib, json, sys, time  # noqa: E401
+import argparse, functools, hashlib, json, math, sys, time  # noqa: E401
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
@@ -30,10 +30,15 @@ def lora_kwargs(rank, alpha_x=1):  # peft.LoraConfig values: rank 16 or 32, alph
     return {"r": rank, "lora_alpha": rank * alpha_x, "target_modules": "all-linear", "lora_dropout": 0.0, "bias": "none", "task_type": "CAUSAL_LM"}
 
 
-def train_kwargs(epochs=1):  # trl.SFTConfig values; loss on the completion only, as TRL does for prompt-completion rows
+def train_kwargs(rows, epochs=1):  # trl.SFTConfig values; loss on the completion only, as TRL does for prompt-completion rows; warmup is 3% of the steps
     return {"learning_rate": 2e-4, "bf16": True, "num_train_epochs": epochs, "per_device_train_batch_size": 1, "gradient_accumulation_steps": 16,
-            "gradient_checkpointing": True, "max_length": 4096, "lr_scheduler_type": "cosine", "warmup_steps": 0.03, "save_strategy": "no",
+            "gradient_checkpointing": True, "max_length": 4096, "lr_scheduler_type": "cosine", "warmup_steps": math.ceil(0.03 * math.ceil(rows / 16) * epochs), "save_strategy": "no",
             "report_to": "none", "logging_steps": 10, "seed": 0}
+
+
+def no_thinking(tok):  # serving turns thinking off, so training renders the chat template with enable_thinking=False too
+    tok.apply_chat_template = functools.partial(tok.apply_chat_template, enable_thinking=False)  # a caller's own keyword still wins
+    return tok
 
 
 def record(out, cfg):  # the adapter's sha256 goes into the config, written beside the adapter
@@ -52,14 +57,14 @@ def tune(lessons, run_id, rank, alpha_x, epochs):  # lessons: a path inside the 
         from peft import LoraConfig
         from transformers import AutoTokenizer, Qwen3_5ForCausalLM  # the text model alone: no vision tower to adapt, no image processor
         from trl import SFTConfig, SFTTrainer
-        model = Qwen3_5ForCausalLM.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16)
-        trainer = SFTTrainer(model=model, args=SFTConfig(output_dir=out, **train_kwargs(epochs)), peft_config=LoraConfig(**lora_kwargs(rank, alpha_x)),
-                             train_dataset=load_dataset("json", data_files=f"{VOL}/{lessons}", split="train"),
-                             processing_class=AutoTokenizer.from_pretrained(MODEL, revision=REVISION))
+        model, data = Qwen3_5ForCausalLM.from_pretrained(MODEL, revision=REVISION, dtype=torch.bfloat16), load_dataset("json", data_files=f"{VOL}/{lessons}", split="train")
+        cfg = train_kwargs(len(data), epochs)
+        trainer = SFTTrainer(model=model, args=SFTConfig(output_dir=out, **cfg), peft_config=LoraConfig(**lora_kwargs(rank, alpha_x)), train_dataset=data,
+                             processing_class=no_thinking(AutoTokenizer.from_pretrained(MODEL, revision=REVISION)))
         loss = trainer.train().training_loss
         trainer.save_model(out)
         info = record(out, {"run_id": run_id, "model": MODEL, "revision": REVISION, "lessons": lessons, "gpu": GPU, "train_loss": loss,
-                            "lora": lora_kwargs(rank, alpha_x), "train": train_kwargs(epochs)})
+                            "lora": lora_kwargs(rank, alpha_x), "train": cfg})
         volume.commit()
     except Exception as err:  # the type only, never a body
         error = type(err).__name__
