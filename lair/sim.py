@@ -22,7 +22,7 @@ class Sim:
         self._count += 1
 
     def run(self, until=None, max_events=None):
-        """Run events in order; return how many ran. Stop before time > until."""
+        """Run events in order; return how many ran. Stop before time > until, leaving now there."""
         ran = 0
         while self._queue and (max_events is None or ran < max_events):
             if until is not None and self._queue[0][0] > until:
@@ -30,7 +30,13 @@ class Sim:
             self.now, _, fn, args = heapq.heappop(self._queue)
             fn(self, *args)
             ran += 1
+        if until is not None and (not self._queue or self._queue[0][0] > until):
+            self.now = max(self.now, until)  # not when max_events stopped us early
         return ran
+
+    def pending(self):
+        """Return the queued events as (t, seq, fn_name, args), in run order."""
+        return sorted((t, seq, fn.__name__, args) for t, seq, fn, args in self._queue)
 
     def record(self, kind, **data):
         """Append a log row stamped with the current time. 't' and 'kind' are reserved."""
