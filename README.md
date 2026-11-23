@@ -4,47 +4,46 @@
 
 [![ci](https://github.com/SoulCraft-Org/aurelius/actions/workflows/ci.yml/badge.svg)](https://github.com/SoulCraft-Org/aurelius/actions/workflows/ci.yml) [![Quality](https://img.shields.io/badge/Quality-page-8B6CE0)](https://soulcraft-org.github.io/aurelius/) ![License](https://img.shields.io/badge/license-Apache--2.0-E8C25A)
 
-Aurelius takes a goal, splits it into tasks, directs the agents and checks the whole. This repo holds the premise and
-the plans for orchestrating thousands of AI agents, and in time hundreds of thousands.
+<img src="docs/img/hero.svg" alt="Aurelius tree: 1 seat directs 47 seats, which direct 2,209 seats, which direct 103,823 workers" width="100%">
 
-| | |
-|---|---|
-| Status | 💡 Concept |
-| Code | None yet. This repo shows what can be done and how |
-| License | Apache-2.0 |
-| Publisher | [SoulCraft](https://soulcraft.computer) |
+Aurelius trains one open model to direct 100,000+ agents as a tree of seats: 47 × 47 × 47 = 103,823.
 
-## The loop
+> 🚧 **Design only.** Nothing is trained yet. Sources read 2026-11-22.
+
+## 🏆 Scorecard
+
+| Pillar | Gap today | Aurelius | Metric | First shown |
+|---|---|---|---|---|
+| 💰 Cheapest path to done | Multi-agent runs use about 15x chat tokens, a figure the vendor states about itself ([Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)) | Picks the cheapest worker expected to pass | Cost per verified success | 🥚 sim |
+| ✅ Checked work | Unchecked agents grew errors 17.2x, against 4.4x with a central check; teams of up to 9 ([arXiv 2512.08296](https://arxiv.org/abs/2512.08296)) | A check at every tier; facts tagged seen or inferred | Error growth per tier; alarms reaching the top | 🥚 sim |
+| 🔁 Never loses work | In-process teammates cannot be resumed ([Claude Code docs](https://code.claude.com/docs/en/agent-teams)) | A ledger per seat; a killed seat resumes | Resume rate | 🥚 sim |
+| 🛑 Hard limits | Task states say working or failed, not what was spent ([MCP Tasks](https://modelcontextprotocol.io/specification/draft/basic/utilities/tasks), [A2A](https://a2a-protocol.org/latest/specification/)) | A budget in every order, enforced by the seat; cancel, then kill | Budget overruns: goal 0 | 🥚 sim |
+| 🔌 Any agent, any model | 51 agents listed on one wire ([ACP](https://agentclientprotocol.com)); closed models bar training a rival on their outputs ([terms](https://www.anthropic.com/legal/commercial-terms)) | One wire (ACP), open Apache-2.0 base models, no closed teacher | Harnesses passing the adapter test | 🐣 real |
+| 🔓 Open and proven | No public cost-per-success score found (our search) | Open weights and a public Ladder | Rungs passed, in public | 🐣 real |
+
+## 🪜 The climb
 
 ```mermaid
 flowchart LR
-  G["🎯 Goal"] --> P["🗺️ Plan"] --> F["🚀 Fan out"] --> W["👀 Watch"] --> L["✅ Land"] --> R["🔁 Loop"]
-  R --> P
+  E["🥚 Egg<br/>sim only"] --> H["🐣 Hatchling<br/>47 agents"] --> D["🐲 Drake<br/>2,209 agents"] --> R["🐉 Dragon<br/>103,823 agents"]
 ```
 
-| Step | What Aurelius does |
+Each rung's recorded runs become the next rung's stand-ins ([training](docs/training.md)).
+
+## 📊 Scoreboard
+
+No scores yet. The first sim scores land in step 18 ([#20](https://github.com/SoulCraft-Org/aurelius/issues/20)).
+
+## 📚 Read more
+
+| Page | What it holds |
 |---|---|
-| 🗺️ Plan | Splits the goal into tasks small enough for one agent each |
-| 🚀 Fan out | Starts as many agents as the work needs, each in its own place |
-| 👀 Watch | Checks every agent on a short clock; a quiet one gets a nudge, then a restart |
-| ✅ Land | Reviews each result before it joins the whole |
-| 🔁 Loop | Gives failed work more effort or a stronger model, then tries again |
-
-## The premise
-
-| Belief | So |
-|---|---|
-| Agents are cheap; checking them is not | Every result is reviewed before it lands |
-| One mind cannot watch thousands | Orchestrators direct orchestrators |
-| Work fails | Failure raises effort or model, never silence |
-
-## Scale
-
-| Stage | Agents | What changes | Status |
-|---|---|---|---|
-| Today | tens | One orchestrator, workers in the cloud | ✅ in use |
-| Next | thousands | Orchestrators of orchestrators, a shared task board, a budget per goal | ⬜ [plan](docs/PLAN.md) |
-| Later | hundreds of thousands | Sampling review, automatic retries, one view of the whole | ⬜ |
+| [`docs/design.md`](docs/design.md) | The seat: loop, 5 actions, order, reply |
+| [`docs/training.md`](docs/training.md) | Base model, method, reward |
+| [`docs/ladder.md`](docs/ladder.md) | The Lair, 4 rungs, 8 metrics |
+| [`docs/sources.md`](docs/sources.md) | Every idea and number, with its source |
+| [`spec/aurelius.json`](spec/aurelius.json) | The one spec the docs read |
+| [`docs/PLAN.md`](docs/PLAN.md) | The plan |
 
 ## How it connects
 
