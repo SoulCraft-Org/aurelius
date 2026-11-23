@@ -21,7 +21,7 @@ Aurelius trains one open model to direct 100,000+ agents as a tree of seats: 47 
 | 🔌 Any agent, any model | 51 agents listed on one wire ([ACP](https://agentclientprotocol.com)); closed models bar training a rival on their outputs ([terms](https://www.anthropic.com/legal/commercial-terms)) | One wire (ACP), open Apache-2.0 base models, no closed teacher | Harnesses passing the adapter test | 🐣 real |
 | 🔓 Open and proven | No public cost-per-success score found (our search) | Open weights and a public Ladder | Rungs passed, in public | 🐣 real |
 
-## 🪜 The climb
+## 🐉 How to train your dragon
 
 ```mermaid
 flowchart LR

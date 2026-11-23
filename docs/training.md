@@ -1,8 +1,8 @@
-# 🎓 Training
+# 🐉 How to train your dragon
 
-How the seat model is trained. Every source below was read on 2026-11-22. Figures marked "our estimate" are ours.
+How the seat model is trained, rung by rung. Every source below was read on 2026-11-22. Figures marked "our estimate" are ours.
 
-> ⚠️ **Nothing here is trained yet.** This page is the plan. No model, run or score exists. Scores come after the Egg builds the first baselines.
+> ⚠️ **Nothing here is trained yet.** This page is the plan. The first sim scores, for a rule-based seat and three baselines, are on the [README scoreboard](../README.md#-scoreboard). No model score exists yet.
 
 ## 🧗 The climb
 
