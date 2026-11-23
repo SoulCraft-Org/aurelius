@@ -75,7 +75,8 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
             self._note(f"http_{err.code}" if isinstance(getattr(err, "code", None), int) else type(err).__name__)
             data = use = None
         if isinstance(data, dict) and isinstance(data.get("error"), dict):
-            self._note(f"api_{data['error'].get('code', 'error')}")
+            code = data["error"].get("code")  # only an integer code: provider text never reaches a public row
+            self._note(f"api_{code}" if isinstance(code, int) and not isinstance(code, bool) else "api_error")
         use = use if isinstance(use, dict) else {}
         num = lambda v, d: v if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else d  # unknown is never zero
         self.spent_usd += num(use.get("prompt_tokens"), len(body) // 3) * PRICE_IN + num(use.get("completion_tokens"), MAX_TOKENS) * PRICE_OUT
