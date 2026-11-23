@@ -148,7 +148,7 @@ class TestAnyEndpoint(unittest.TestCase):  # #65: SEAT_URL, SEAT_MODEL, SEAT_KEY
             seat = ModelSeat(SPEC)
             static = json.dumps(seat.tools)
             _, body = self.send(seat, obs)
-        enum = {t["function"]["name"]: t["function"]["parameters"]["properties"]["children"] for t in body["tools"]}
+        enum = {t["function"]["name"]: t["function"]["parameters"]["properties"]["children"] for t in body["tools"] if t["function"]["name"] in ("map", "check")}
         self.assertEqual(body["tool_choice"], "required")
         self.assertEqual(enum["map"]["items"]["enum"], ["k1", "k2", "k3"])  # pending plus retryable
         self.assertEqual(enum["check"]["items"]["enum"], ["k0", "k3"])  # replies not yet checked
