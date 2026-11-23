@@ -31,7 +31,6 @@ def _wrong(items, facts):
 
 class _Leaf:
     """A tier-1 seat: the RuleSeat loop on its own Sim, whose log is its ledger."""
-
     def __init__(self, spec, task, items, seed, left):
         self.sim, self.led, self.spec, self.task = Sim(seed), Ledger(), spec, task
         self.led.entries = self.sim.log  # the ledger is the log, so replay checks every row
@@ -146,9 +145,9 @@ def _rule(task, spec, rung_id, seed, budget):
 
 
 def run_once(rung_id, seat, spec, seed, kind="table", budget=None):
-    """One run log. seat is "rule" or a baseline id. Budget: one medium call per item."""
+    """One run log. Every seat, rule or baseline, gets 5 credits per agent: a call and a check."""
     agents = _rung(spec, rung_id)["agents"]
-    task, budget = make_task(seed, agents, kind), 4 * agents if budget is None else budget
+    task, budget = make_task(seed, agents, kind), 5 * agents if budget is None else budget
     if seat == "rule":
         return _rule(task, spec, rung_id, seed, budget)
     return run_baseline(seat, task, spec, seed, budget)
@@ -156,7 +155,6 @@ def run_once(rung_id, seat, spec, seed, kind="table", budget=None):
 
 def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
     """The spec's score row for a seat on a rung, with the 8 metrics over all seeds."""
-    spec = load_spec()
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
-            "workers": "sim", "seed": list(seeds), "metrics": compute([run_once(rung_id, seat, spec, s, kind) for s in seeds])}
+            "workers": "sim", "seed": list(seeds), "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind) for s in seeds])}

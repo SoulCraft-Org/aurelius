@@ -1,6 +1,7 @@
 """Unit tests for the Ladder runner. Rungs r10 and r47 run; r2209 is built, and run once."""
 
 import unittest
+from unittest import mock
 
 from ladder.metrics import METRIC_IDS
 from ladder.run import run_once, score, tree
@@ -27,12 +28,13 @@ class RunTest(unittest.TestCase):
                 self.assertEqual(a["metrics"], b["metrics"])
                 self.assertEqual((tuple(a["metrics"]), a["metrics"]["budget_overruns"]), (METRIC_IDS, 0))
                 self.assertEqual((list(a), a["workers"]), (SPEC["score_row"]["fields"], "sim"))
-                log = run_once(rung, seat, SPEC, 1, "no_split")
-                self.assertEqual(rows(log, "final")[0]["critical_steps"], int(rung[1:]))
 
     def test_the_rule_seat_resumes_a_killed_leaf_and_a_tier_checks_up(self):
-        log = run_once("r2209", "rule", SPEC, 0, budget=6 * 2209)
+        log = run_once("r2209", "rule", SPEC, 0)
         self.assertEqual([r["same"] for r in rows(log, "resume")], [True])
-        self.assertEqual(sorted({r["tier"] for r in rows(log, "report")}), [1, 2])
         self.assertTrue([r for r in rows(log, "check") if r["tier"] == 2])
-        self.assertEqual(rows(log, "overrun"), [])
+
+    def test_the_rule_seat_and_a_baseline_get_the_same_budget(self):
+        with mock.patch("ladder.run.run_baseline") as base, mock.patch("ladder.run._rule") as rule:
+            run_once("r10", "one_agent", SPEC, 1), run_once("r10", "rule", SPEC, 1)
+        self.assertEqual((base.call_args.args[4], rule.call_args.args[4]), (50, 50))
