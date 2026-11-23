@@ -1,6 +1,7 @@
 {
- "comment": "Aurelius's Quality, Speed and Consumption page (Git Crafter templates/quality). No code yet, so the code tab is left out.",
+ "comment": "Aurelius's Quality, Speed and Consumption page (Git Crafter templates/quality). The code tab measures lair/ and ladder/.",
  "tabs": [
+  "code",
   "documentation",
   "issues",
   "pull-requests",

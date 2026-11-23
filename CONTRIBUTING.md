@@ -11,3 +11,4 @@ flowchart LR
 | The plan | Edit [`docs/PLAN.md`](docs/PLAN.md) or the README in a pull request. Name the source and date of every figure |
 | Every commit | Sign off with `git commit -s` ([DCO](https://developercertificate.org/)) |
 | Every pull request | `ci / ci-ok` must pass: the voice lint over every Markdown file |
+| Unit tests | `python3 -m unittest discover -s tests -t .`, run by CI in the short job, never on a laptop |
