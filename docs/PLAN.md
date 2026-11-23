@@ -1,6 +1,6 @@
 # 🗺️ Roadmap: Aurelius
 
-> Status read from the step issues on 2026-11-23. ✅ closed, ⬜ open, ➡️ moved. Step n is issue #(n+2); 16b is #39.
+> Status read from the step issues on 2026-11-23. ✅ closed, ⬜ open, ➡️ moved.
 
 ## 🧭 Phases
 
@@ -42,11 +42,38 @@ flowchart LR
 | 18 | First scores, sim | [#20](https://github.com/SoulCraft-Org/aurelius/issues/20) | ✅ |
 | 19 | Untrained Qwen3.5-9B seat | [#21](https://github.com/SoulCraft-Org/aurelius/issues/21) | ➡️ moved to Hatchling: the seat code is ready; the score runs on our own GPUs |
 
+## 🐣 Hatchling
+
+| Step | Title | Issue | Status |
+|---|---|---|---|
+| 20 | Fix the map-then-check crash | [#59](https://github.com/SoulCraft-Org/aurelius/issues/59) | ⬜ |
+| 21 | Seed splits, a version stamp, a rates flag | [#61](https://github.com/SoulCraft-Org/aurelius/issues/61) | ⬜ |
+| 21b | Training doc and roadmap match plan 2 | [#62](https://github.com/SoulCraft-Org/aurelius/issues/62) | ⬜ |
+| 21c | The tree in 3D | [#63](https://github.com/SoulCraft-Org/aurelius/issues/63) | ⬜ |
+| 22 | Lair Env: reset, act, reward | [#64](https://github.com/SoulCraft-Org/aurelius/issues/64) | ⬜ |
+| 23 | Any endpoint, locked tool calls, the credit ledger | [#65](https://github.com/SoulCraft-Org/aurelius/issues/65) | ⬜ |
+| 24 | Move 3: sweep the rule seat | [#66](https://github.com/SoulCraft-Org/aurelius/issues/66) | ⬜ |
+| 25 | Serve the student, with the guard | [#67](https://github.com/SoulCraft-Org/aurelius/issues/67) | ⬜ |
+| 26 | Moves 1 + 2: the untrained seat | [#68](https://github.com/SoulCraft-Org/aurelius/issues/68) | ⬜ |
+| 27 | Move 4: evolve the seat prompt | [#69](https://github.com/SoulCraft-Org/aurelius/issues/69) | ⬜ |
+| 28 | The Library | [#70](https://github.com/SoulCraft-Org/aurelius/issues/70) | ⬜ |
+| 29 | Real workers | [#71](https://github.com/SoulCraft-Org/aurelius/issues/71) | ⬜ |
+| 30 | Record real runs, fit the Lair | [#72](https://github.com/SoulCraft-Org/aurelius/issues/72) | ⬜ |
+| 30b | A recorded run, replayed (4D) | [#73](https://github.com/SoulCraft-Org/aurelius/issues/73) | ⬜ |
+| 30c | The viewer (5D) | [#74](https://github.com/SoulCraft-Org/aurelius/issues/74) | ⬜ |
+| 31 | Lessons: the best runs as examples | [#75](https://github.com/SoulCraft-Org/aurelius/issues/75) | ⬜ |
+| 32 | Move 5: LoRA tune, rung 10 then 47 | [#76](https://github.com/SoulCraft-Org/aurelius/issues/76) | ⬜ |
+| 33 | Move 6: GRPO, only if step 32 stalls | [#77](https://github.com/SoulCraft-Org/aurelius/issues/77) | ⬜ |
+| 34 | Move 7: blend adapters, only with 2 or more | [#78](https://github.com/SoulCraft-Org/aurelius/issues/78) | ⬜ |
+| 35 | The Hatchling gate | [#79](https://github.com/SoulCraft-Org/aurelius/issues/79) | ⬜ |
+
+Order and moves: [training](training.md).
+
 ## 🔭 Later
 
 | Phase | What | Needs first | Source, read 2026-11-22 |
 |---|---|---|---|
-| 🐣 Hatchling | First tasks: score the untrained Qwen3.5-9B seat, self-hosted; then the bake-off (Inkling 2 Mini, MiMo distill). Then first training, on 47 real workers | Egg scores; budget asked first | [spec](../spec/aurelius.json) |
+| 🐣 Hatchling | Steps 20 to 35 above: prompts, then lessons, then LoRA, then GRPO if needed. Trained in a Lair fitted from real workers; real workers are the exam | Egg scores | [spec](../spec/aurelius.json) |
 | 🚀 Release | Weights on Hugging Face, a GGUF file, `ollama run` | A trained seat | [training](training.md) |
 | 🐲 Drake | 2,209 agents, 47 stand-in teams | Hatchling runs | [spec](../spec/aurelius.json) |
 | 🐉 Dragon | 103,823 agents, 47 stand-in armies | Drake runs | [spec](../spec/aurelius.json) |
