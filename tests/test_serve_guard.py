@@ -63,20 +63,20 @@ class TestServeGuard(unittest.TestCase):
         self.serve.run_jobs.remote.assert_not_called()
 
     def test_the_deadline_returns_the_replies_so_far_and_each_call_fits_the_margin(self):
-        clock, made = {"t": 0.0}, {}
+        clock, made, step = {"t": 0.0}, {}, (self.serve.TIMEOUT_S - 300) // 3
 
-        class Fake:  # each item takes 500 s of a fake clock; the deadline is TIMEOUT_S - 300 = 1500
+        class Fake:  # each item takes a third of the deadline, TIMEOUT_S - 300, on a fake clock
             def __init__(self, *args, **kw):
                 made.update(kw)
 
             def __call__(self, item):
-                clock["t"] += 500
+                clock["t"] += step
                 return {"status": "completed", "facts": [], "alarms": [], "spent": {}}
 
         job = {"kind": "small", "seed": 0, "size": 5, "library": {"distractors": 0, "conflicts": 0.0, "noise": 0.0}}
         with mock.patch("lair.real_workers.RealWorker", Fake), mock.patch.object(self.serve.time, "monotonic", lambda: clock["t"]):
             out = self.serve._workers(job, "http://localhost:8000/v1", "m", 0.0)
-        self.assertEqual((sorted(out["replies"]), out["skipped"]), (["k0", "k1", "k2"], ["k3", "k4"]))  # k3 ended at 2000, past 1500: dropped
+        self.assertEqual((sorted(out["replies"]), out["skipped"]), (["k0", "k1", "k2"], ["k3", "k4"]))  # k3 ends past the deadline: dropped
         self.assertLessEqual(5 * made["timeout"], 300)
         self.assertEqual(made["deadline"], self.serve.TIMEOUT_S - 300)
 
