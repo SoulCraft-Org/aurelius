@@ -8,7 +8,7 @@ from unittest import mock
 from ladder.models import ModelSeat
 from lair import load_spec
 from lair.seat import RuleSeat, validate_action
-from train.traces import convert, example
+from train.traces import convert, example, visible
 
 SPEC = load_spec()
 OBS = {"pending": ["k1"], "replies": {"k0": {"status": "completed", "facts": [{"claim": "k0", "value": 1}], "alarms": []}},
@@ -54,14 +54,14 @@ class TestTraces(unittest.TestCase):
             validate_action(SPEC, {"name": fn["name"], **json.loads(fn["arguments"])})
 
     def test_the_assistant_turn_holds_only_what_the_user_turn_shows(self):
-        report = {"name": "report", "summary": "s", "alarms": ["late", "hidden"]}
-        for acts, obs, shown in (([MAP, report], OBS, []), ([report], {**OBS, "pending": ["late"]}, ["late"])):
-            row = example(ModelSeat(SPEC), line(obs=obs, actions=acts))
-            args = [json.loads(c["function"]["arguments"]) for c in row["completion"][0]["tool_calls"]]
-            self.assertEqual([x for a in args for x in a.get("alarms", [])], shown)
-            self.assertTrue(all(json.dumps(v) in row["prompt"][1]["content"] for a in args for v in a.get("children", []) + a.get("alarms", [])))
+        report = {"name": "report", "summary": "s", "alarms": ["k3", "k4"]}
+        row = example(ModelSeat(SPEC), line(actions=[MAP, report]))  # today's view shows statuses only: no alarm is shown
+        args = [json.loads(c["function"]["arguments"]) for c in row["completion"][0]["tool_calls"]]
+        self.assertEqual(args[1]["alarms"], [])
+        self.assertTrue(all(json.dumps(k) in row["prompt"][1]["content"] for a in args for k in a.get("children", [])))
+        shown = json.dumps({"replies": {"k0": {"status": "completed", "alarms": ["k3"]}, "k1": {"status": "failed", "alarms": []}}, "pending": ["k1"]})
+        self.assertEqual(visible(shown, [report])[0]["alarms"], ["k3"])  # a view that shows alarms keeps the ones it shows
         self.assertEqual(convert(SPEC, [line(actions=[{**MAP, "children": ["nope"]}])], 0.9)[1]["hidden"], 1)
-
 
 if __name__ == "__main__":
     unittest.main()

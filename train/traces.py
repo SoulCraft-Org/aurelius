@@ -31,11 +31,11 @@ def split_of(spec, line):
 
 
 def visible(user, actions):
-    """The actions with only what the user turn shows: hidden alarms are dropped; None if a child key is hidden."""
-    ok = lambda v: json.dumps(v) in user
-    if not all(ok(k) for a in actions for k in a.get("children", [])):
+    """The actions with only what the user turn shows: an alarm stays only if a reply in the view lists it; None if a child key is hidden."""
+    shown = {x for r in json.loads(user)["replies"].values() if isinstance(r, dict) for x in r.get("alarms", [])}
+    if not all(json.dumps(k) in user for a in actions for k in a.get("children", [])):
         return None
-    return [{**a, "alarms": [x for x in a["alarms"] if ok(x)]} if "alarms" in a else a for a in actions]
+    return [{**a, "alarms": [x for x in a["alarms"] if x in shown]} if "alarms" in a else a for a in actions]
 
 
 def example(seat, line):
