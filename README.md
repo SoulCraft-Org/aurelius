@@ -38,7 +38,7 @@ Each rung's recorded runs become the next rung's stand-ins ([training](docs/trai
 
 ## 📊 Scoreboard
 
-First scores, 2026-11-23, from [one `ladder.yml` run](https://github.com/SoulCraft-Org/aurelius/actions/runs/45107701093) on commit `9d525ad`. Source: [`ladder/scores.json`](ladder/scores.json).
+First scores, 2026-11-23, from [one `ladder.yml` run](https://github.com/SoulCraft-Org/aurelius/actions/runs/45107701093) on commit `9d525ad`. Source: [`ladder/scores.json`](ladder/scores.json). That file also holds the step 24 sweep rows, in a newer row shape ([two row shapes](docs/ladder.md#two-row-shapes-in-ladderscoresjson)).
 
 **Verified success on r10, the only rung with any verified run (%)**
 

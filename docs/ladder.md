@@ -72,8 +72,27 @@ Source: `spec/aurelius.json`, `score_row`, read 2026-11-22.
 
 | Field | Value |
 |---|---|
-| Fields | `date`, `commit`, `rung`, `seat`, `workers`, `seed`, `metrics` |
+| Fields | `date`, `commit`, `rung`, `seat`, `workers`, `seed`, `metrics`, `split`, `rates`, `stamp` |
 | `workers` | `sim` or `real` |
+| `split` | `dev`, `val` or `test`: the seed range in `seeds` that the row's seeds come from |
+| `rates` | From -0.5 to 0.5. Every error rate is multiplied by (1 + rates). 0 is the spec as written |
+| `stamp` | An object with `spec`, `seat`, `model`, `revision`, `adapter` and `prompt` |
+| `stamp.spec` | The first 12 hex of the sha256 of the canonical spec JSON |
+| `stamp` for rule seats and baselines | `model`, `revision`, `adapter` and `prompt` are null |
+
+### Two row shapes in `ladder/scores.json`
+
+The file holds rows of two shapes. Old rows are kept as they were written; no value is filled in after the fact.
+
+| Rows | Commit | Fields | Why |
+|---|---|---|---|
+| 16 first-score rows, cited by the README scoreboard | `9d525ad` | `date`, `commit`, `rung`, `seat`, `workers`, `seed`, `metrics` only | Written before #61 added `split`, `rates` and `stamp` |
+| 72 step 24 sweep rows | `b55cbfe` | All 10 fields, plus `params`, `grade` and `sweep` | Written by `ladder/sweep.py` after #61 |
+
+- A reader of `scores.json` treats `split`, `rates` and `stamp` as absent on the first shape.
+- It must not assume a default for them.
+- `tests/test_scores_shape.py` checks that every row has one of the two shapes.
+- A new row always has all 10 fields.
 
 **Every score says `sim` or `real`.** A sim score never stands in for a real one.
 

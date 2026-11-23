@@ -96,7 +96,7 @@ Hatchling's first task is a bake-off. The winner takes the slot.
 |---|---|---|
 | Reward | The share of items right. A reply that does not parse scores 0 | [spec](../spec/aurelius.json) |
 | Report | "Verified" at the 95% bar | [spec](../spec/aurelius.json) |
-| Split bonus | Only on tasks that cannot split; it fades to 0 | [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
+| Split bonus | Only on tasks that can split, and only on success; it fades to 0 | [spec](../spec/aurelius.json) `reward[split]`, [arXiv 2602.02276](https://arxiv.org/abs/2602.02276) |
 | Tasks | Fill-the-table research with known answers; planted faults and alarms | [spec](../spec/aurelius.json) |
 | Tasks where splitting is wrong | Sequential planning got 39% to 70% worse with more agents | [arXiv 2512.08296](https://arxiv.org/abs/2512.08296) |
 
