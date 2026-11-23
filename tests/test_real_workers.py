@@ -50,7 +50,8 @@ class RealWorkersTest(unittest.TestCase):
 
     def test_a_good_answer_is_a_valid_reply(self):
         out, _ = run([reply(calls=[ITEM.key]), answer(ITEM.answer, MAIN)])
-        self.assertEqual(set(out), {f["field"] for f in SPEC["reply"]})
+        self.assertEqual(set(out) - {"brief"}, {f["field"] for f in SPEC["reply"]})
+        self.assertEqual(out["brief"], "terse")
         self.assertEqual(out["status"], "completed")
         self.assertIn(out["status"], SPEC["task_states"])
         fact = out["facts"][0]

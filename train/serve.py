@@ -18,7 +18,7 @@ import modal
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from lair.real_workers import REAL_WORKERS  # noqa: E402  (stdlib only; needs the path line above)
+from lair.real_workers import BRIEFS, REAL_WORKERS  # noqa: E402  (stdlib only; needs the path line above)
 
 MODEL, REVISION = "Qwen/Qwen3.5-9B", "c202236235762e1c871ad0ccb60c8ee5ba337b9a"  # Hugging Face's commit, read 2026-11-23
 GPU, GPU_USD_H = "L4", 0.80  # 24 GB; Modal's list price, $0.000222 a second, read 2026-11-23 (modal.com/pricing)
@@ -88,7 +88,8 @@ def _workers(job, url, model, t0):  # real workers over one seeded Library: the 
     from lair.tasks import make_task
     task = make_task(job["seed"], job["size"])
     deadline = t0 + TIMEOUT_S - 300  # no call runs past it: Modal's hard stop would discard every reply
-    worker, replies = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline), {}
+    worker = RealWorker(job["kind"], url, model, make_library(task, job["seed"], **job["library"]), timeout=CALL_S, deadline=deadline, brief=job.get("brief", "terse"))
+    replies = {}
     for it in task.items:
         reply = worker(it) if time.monotonic() <= deadline else None
         if reply is None or time.monotonic() > deadline:  # an item cut short by the deadline is not a measurement
@@ -130,6 +131,7 @@ def main(argv=None):
     w = sub.add_parser("workers", help="real workers of one type over a seeded Library")
     w.add_argument("--kind", choices=list(REAL_WORKERS), required=True)
     w.add_argument("--seed", type=int, required=True)
+    w.add_argument("--brief", choices=BRIEFS, default="terse", help="terse: the item key only; full: the order's five fields, no answer")
     w.add_argument("--split", default="dev")
     w.add_argument("--size", type=int, default=20, help=f"items, 1 to {MAX_ITEMS}")
     for knob, cast, hi, default in (("distractors", int, 10, 2), ("conflicts", float, 1, 0.3), ("noise", float, 5, 1.0)):  # ours: a Library that is not trivial
@@ -139,7 +141,7 @@ def main(argv=None):
     if args.cmd == "workers":
         if not 0 < args.size <= MAX_ITEMS:
             sys.exit(f"size must be 1 to {MAX_ITEMS}")
-        jobs = [{"kind": args.kind, "split": args.split, "seeds": [args.seed], "seed": args.seed, "size": args.size,
+        jobs = [{"kind": args.kind, "split": args.split, "seeds": [args.seed], "seed": args.seed, "size": args.size, "brief": args.brief,
                  "library": {k: getattr(args, k) for k in ("distractors", "conflicts", "noise")}}]
     else:
         jobs = [{"rung": "r10", "split": "dev", "seeds": [0], "lock": False}] if args.cmd == "smoke" else [_job(j) for j in args.job]

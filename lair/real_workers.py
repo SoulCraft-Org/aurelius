@@ -26,13 +26,17 @@ SEARCH = {"type": "function", "function": {"name": "search", "description": "Sea
           "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}}
 SYSTEM = ("Find the value of one record in a library. Use the search tool, at most 4 times, and trust the latest correct entry. "
           'Then answer with only JSON: {"value": "<the value>", "doc": "<id of the document you took it from>"}.')
+BRIEFS = ("terse", "full")  # terse: the item key only. full: the order's five fields (spec "order"), filled from the item without its answer
 BAD = (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError, http.client.HTTPException)  # a timeout is an OSError
 
 
 class RealWorker:
-    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S, deadline=None):  # deadline: a time.monotonic() value no call may pass
+    def __init__(self, kind, url, model, library, spec=None, timeout=TIMEOUT_S, deadline=None, brief="terse"):  # deadline: a time.monotonic() value no call may pass
         if urllib.parse.urlparse(url).scheme not in ("http", "https"):
             raise ValueError("url must be http or https")
+        if brief not in BRIEFS:
+            raise ValueError(f"brief must be one of {BRIEFS}")
+        self.brief = brief
         self.wtype = worker_types(spec or load_spec())[kind]
         self.url, self.model, self.library, self.timeout, self.deadline = url, model, library, timeout, deadline
 
@@ -48,10 +52,17 @@ class RealWorker:
         except Exception:  # whatever it is, the spend is counted and nothing of the error is kept: no body, no answer text
             status, facts = "failed", []
         spent = {"credits": self.wtype["credits_per_call"], "seconds": round(time.monotonic() - start, 3), "tokens": used["tokens"]}
-        return {"status": status, "facts": facts, "alarms": [], "spent": spent}
+        return {"status": status, "facts": facts, "alarms": [], "spent": spent, "brief": self.brief}
+
+    def order(self, key):
+        """The order's five fields for one item: built from its key alone, so no answer or truth can enter."""
+        return {"goal": f"State the value of record {key}", "done_check": "the value is in a library document you read, and doc names it",
+                "scope": "the search tool over the library only; nothing else", "reply_shape": {"value": "string", "doc": "document id"},
+                "budget": {"tokens": MAX_TOKENS * (ROUNDS + 1), "seconds": self.timeout, "credits": self.wtype["credits_per_call"]}}
 
     def _ask(self, key, used, read):  # read: doc id -> text of every document a search returned
-        msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": f"Record {key}: what is its value?"}]
+        ask = f"Record {key}: what is its value?" + (f" Order: {json.dumps(self.order(key))}" if self.brief == "full" else "")
+        msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": ask}]
         for turn in range(ROUNDS + 1):  # the last turn offers no tool, so it must answer
             msg = self._post(msgs, [SEARCH] if turn < ROUNDS else None, used)
             calls = msg.get("tool_calls") or []
