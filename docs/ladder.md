@@ -58,7 +58,7 @@ Source: `spec/aurelius.json`, `baselines`, read 2026-11-22.
 
 ## 🚪 Gates
 
-Each rung's targets come from the Egg's baseline numbers: the Egg, the first stage, is when the Lair and Ladder run with untrained seats and fixed baselines. We do not guess them now.
+Each rung's targets are set from the baseline numbers measured on the rung below, not guessed now.
 
 | Step | Target |
 |---|---|
