@@ -9,7 +9,8 @@ from types import SimpleNamespace
 from unittest import mock
 
 from ladder.metrics import METRIC_IDS
-from ladder.run import _Leaf, _kill_and_resume, _lift, main, parse_args, run_once, score, tree
+from ladder.models import MODEL
+from ladder.run import _Leaf, _kill_and_resume, _lift, main, parse_args, run_once, score, stamp, tree, with_rates
 from lair import load_spec
 from lair.baselines import NAMES
 from lair.sim import Sim
@@ -100,3 +101,57 @@ class RunTest(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             main(["--rung", "r10", "--seat", "flat_fan_out", "--seeds", "2"])
         self.assertEqual(json.loads(out.getvalue()), score("r10", "flat_fan_out", (0, 1)))
+
+    def test_the_splits_never_overlap(self):
+        spans = sorted(SPEC["seeds"].values())
+        self.assertEqual(SPEC["seeds"], {"dev": [0, 999], "val": [1000, 1999], "test": [2000, 2999]})
+        for (lo, hi), (next_lo, _) in zip(spans, spans[1:]):
+            self.assertLessEqual(lo, hi)
+            self.assertLess(hi, next_lo)
+
+    def test_a_seed_outside_the_split_is_refused(self):
+        with self.assertRaises(ValueError):
+            score("r10", "rule", (0, 1000))  # a val seed in a dev run
+        with self.assertRaises(ValueError):
+            score("r10", "rule", (0,), split="val")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            main(["--rung", "r10", "--seat", "one_agent", "--seeds", "2", "--split", "test"])
+        row = json.loads(out.getvalue())
+        self.assertEqual((row["seed"], row["split"], row["rates"]), ([2000, 2001], "test", 0.0))
+
+    def test_rates_change_only_error_rates(self):
+        out = with_rates(SPEC, 0.2)
+        for was, now in zip(SPEC["worker_types"], out["worker_types"]):
+            self.assertAlmostEqual(1 - now["skill"], (1 - was["skill"]) * 1.2)
+        for k in ("false_pass", "false_fail"):
+            self.assertAlmostEqual(out["check"][k], SPEC["check"][k] * 1.2)
+
+        def rest(spec):  # everything but the error rates
+            return {**spec, "worker_types": [{k: v for k, v in t.items() if k != "skill"} for t in spec["worker_types"]],
+                    "check": {k: v for k, v in spec["check"].items() if k not in ("false_pass", "false_fail")}}
+        self.assertEqual(rest(out), rest(SPEC))
+        self.assertEqual(SPEC, load_spec())  # the copy never touches the original
+        self.assertIs(with_rates(SPEC, 0.0), SPEC)
+        edge = {"worker_types": [{"skill": 0.0}, {"skill": 1.0}], "check": {"false_pass": 0.9, "false_fail": 0.0}}
+        got = with_rates(edge, 0.5)
+        self.assertEqual([t["skill"] for t in got["worker_types"]], [0.0, 1.0])
+        self.assertEqual(got["check"], {"false_pass": 1.0, "false_fail": 0.0})
+        for bad in (0.6, -0.51, float("nan")):
+            with self.assertRaises(ValueError):
+                with_rates(SPEC, bad)
+        self.assertEqual(score("r10", "one_agent", (0,), rates=0.2)["rates"], 0.2)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parse_args(["--rung", "r10", "--seat", "rule", "--rates", "0.6"])
+
+    def test_the_stamp_is_stable_for_the_same_spec(self):
+        a, b = score("r10", "rule", (0,)), score("r10", "rule", (0,), rates=0.2)
+        self.assertEqual(a["stamp"], score("r10", "rule", (0,))["stamp"])
+        self.assertEqual(a["stamp"], b["stamp"])  # the hash is of the spec as written, before --rates
+        self.assertRegex(a["stamp"]["spec"], "^[0-9a-f]{12}$")
+        self.assertEqual(a["stamp"]["seat"], "rule")
+        self.assertEqual([v for k, v in a["stamp"].items() if k not in ("spec", "seat")], [None] * 4)
+        self.assertNotEqual(stamp({**SPEC, "version": "x"}, "rule")["spec"], a["stamp"]["spec"])
+        self.assertEqual(stamp(dict(reversed(SPEC.items())), "rule"), a["stamp"])  # key order does not matter
+        seat = stamp(SPEC, "model", SimpleNamespace(system="p"))
+        self.assertEqual((seat["model"], seat["prompt"] is None), (MODEL, False))

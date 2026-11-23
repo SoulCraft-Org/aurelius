@@ -1,6 +1,8 @@
 """The Ladder runner: one run of a seat on a task, and the score row over seeds."""
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 import random
@@ -172,29 +174,89 @@ def run_once(rung_id, seat, spec, seed, kind="table", budget=None, model=None):
     return run_baseline(seat, task, spec, seed, budget)
 
 
-def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
+RATES_LIMIT = 0.5  # --rates runs from -0.5 to 0.5
+
+
+def _check_rates(rates):
+    if not -RATES_LIMIT <= rates <= RATES_LIMIT:  # also rejects nan
+        raise ValueError(f"rates must be from -{RATES_LIMIT} to {RATES_LIMIT}")
+
+
+def with_rates(spec, rates):
+    """A copy of the spec with every error rate times (1 + rates), clamped to [0, 1].
+
+    Error rates are each worker type's 1 - skill and the check's false_pass and false_fail.
+    Seconds, prices and the crash rate (a default in lair/workers.py, not in the spec) stay.
+    """
+    _check_rates(rates)
+    if not rates:
+        return spec
+    scale = lambda err: min(max(err * (1 + rates), 0.0), 1.0)
+    out = copy.deepcopy(spec)
+    for t in out["worker_types"]:
+        t["skill"] = 1 - scale(1 - t["skill"])
+    for k in ("false_pass", "false_fail"):
+        out["check"][k] = scale(out["check"][k])
+    return out
+
+
+def _hash(text):
+    return hashlib.sha256(text.encode()).hexdigest()[:12]
+
+
+def stamp(spec, seat, model=None):
+    """The version stamp on a score row. The spec hash covers the spec as written, before --rates."""
+    canon = json.dumps(spec, sort_keys=True, separators=(",", ":"))
+    return {"spec": _hash(canon), "seat": seat, "model": MODEL if model else None, "revision": None,
+            "adapter": None, "prompt": _hash(model.system) if model else None}
+
+
+def check_split(spec, split, seeds):
+    """Refuse a seed outside the split's inclusive range in spec['seeds']."""
+    if split not in spec["seeds"]:
+        raise ValueError(f"unknown split {split!r}")
+    lo, hi = spec["seeds"][split]
+    bad = [s for s in seeds if not lo <= s <= hi]
+    if bad:
+        raise ValueError(f"seed {bad[0]} is outside the {split} split ({lo} to {hi})")
+
+
+def score(rung_id, seat, seeds=(0, 1, 2), kind="table", split="dev", rates=0.0):
     """The spec's score row for a seat on a rung, with the 8 metrics over all seeds."""
-    model = ModelSeat(load_spec()) if seat == "model" else None  # one seat for every seed: one shared cap
-    metrics = compute([run_once(rung_id, seat, load_spec(), s, kind, model=model) for s in seeds])
+    spec = load_spec()
+    check_split(spec, split, seeds)
+    run_spec = with_rates(spec, rates)
+    model = ModelSeat(run_spec) if seat == "model" else None  # one seat for every seed: one shared cap
+    metrics = compute([run_once(rung_id, seat, run_spec, s, kind, model=model) for s in seeds])
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
             "workers": "sim", **({"model": MODEL, "model_stats": model.stats()} if model else {}), "seed": list(seeds),
-            "metrics": metrics}
+            "metrics": metrics, "split": split, "rates": rates, "stamp": stamp(spec, seat, model)}
+
+
+def _rates(text):
+    x = float(text)
+    _check_rates(x)  # a ValueError makes argparse print a usage error
+    return x
 
 
 def parse_args(argv=None):
-    """The command line: which rung, which seat, how many seeds (0 to N-1)."""
+    """The command line: which rung, which seat, the split, how many of its first seeds."""
     p = argparse.ArgumentParser(prog="python3 -m ladder.run", description="Print a seat's score row as JSON.")
     p.add_argument("--rung", required=True, choices=[r["id"] for r in load_spec()["rungs"]])
     p.add_argument("--seat", required=True, choices=["rule", "model", *NAMES])
-    p.add_argument("--seeds", type=int, default=3, help="number of seeds, run as 0 to N-1")
+    p.add_argument("--seeds", type=int, default=3, help="number of seeds: the split's first N")
+    p.add_argument("--split", choices=list(load_spec()["seeds"]), default="dev")
+    p.add_argument("--rates", type=_rates, default=0.0, help="error rates times (1 + X), X from -0.5 to 0.5")
     p.add_argument("--kind", choices=KINDS, default="table")
     return p.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
-    print(json.dumps(score(args.rung, args.seat, tuple(range(args.seeds)), args.kind), indent=2))
+    lo = load_spec()["seeds"][args.split][0]
+    row = score(args.rung, args.seat, tuple(range(lo, lo + args.seeds)), args.kind, args.split, args.rates)
+    print(json.dumps(row, indent=2))
 
 
 if __name__ == "__main__":
