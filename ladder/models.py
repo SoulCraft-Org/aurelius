@@ -96,6 +96,7 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
         acts = [{"name": c["function"]["name"], **json.loads(c["function"]["arguments"])} for c in calls]
         retry = {k for k, r in obs["replies"].items() if r["status"] == "failed" or obs["checked"].get(k) is False}
         left = obs["budget_left"]["credits"]  # one running budget for the whole reply, not per action
+        mapped = set()  # a map clears its keys' replies, so a later check in this reply would find none
         for a in acts:
             validate_action(self.spec, a)
             keys = a.get("children", [])
@@ -104,9 +105,10 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
                 if not (keys and set(keys) <= set(obs["pending"]) | retry and cost <= left):
                     raise ValueError("map must send resendable keys within budget_left")
                 left -= cost
-            if a["name"] == "check" and not (keys and set(keys) <= set(obs["replies"]) - set(obs["checked"])
+                mapped |= set(keys)
+            if a["name"] == "check" and not (keys and set(keys) <= set(obs["replies"]) - set(obs["checked"]) - mapped
                                              and len(keys) * CHECK_COST <= left):
-                raise ValueError("check must name unchecked replies it can pay for")
+                raise ValueError("check must name unchecked replies it can pay for, none mapped earlier in this reply")
             if a["name"] == "check":
                 left -= len(keys) * CHECK_COST
         if all(a["name"] == "wait" for a in acts):

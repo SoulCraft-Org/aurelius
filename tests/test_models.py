@@ -55,6 +55,15 @@ class TestModelSeat(unittest.TestCase):
                 seat = ModelSeat(SPEC)
                 self.assertEqual((names(seat.decide(obs)), seat.format_errors), (ENDS, 1))
 
+    def test_a_check_on_a_key_mapped_earlier_in_the_reply_is_refused(self):  # #59: the map clears the reply, the check crashed the run
+        failed = {**OBS, "pending": [], "replies": {"k0": {"status": "failed", "facts": [], "alarms": []}}}
+        again = ("map", {**MAP[1], "children": ["k0"]})
+        with reply(again):
+            self.assertEqual(names(ModelSeat(SPEC).decide(failed)), ["map"])  # the resend alone is fine
+        with reply(again, CHECK):
+            seat = ModelSeat(SPEC)
+            self.assertEqual((names(seat.decide(failed)), seat.format_errors), (ENDS, 1))
+
     def test_the_cache_is_free_and_a_looping_seat_ends(self):
         seat = ModelSeat(SPEC, max_calls=1)
         with reply(MAP) as urlopen:  # the same request is answered free; the asks limit (5 x max_calls) cuts a loop
