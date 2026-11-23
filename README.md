@@ -6,6 +6,8 @@
 
 <img src="docs/img/hero.svg" alt="Aurelius tree: 1 seat directs 47 seats, which direct 2,209 seats, which direct 103,823 workers" width="100%">
 
+🧊 [The 2,209-agent tree in 3D, drag to turn](docs/img/tree.stl)
+
 Aurelius trains one open model to direct 100,000+ agents as a tree of seats: 47 × 47 × 47 = 103,823.
 
 > 🚧 **Design only.** Nothing is trained yet. Sources read 2026-11-22.
