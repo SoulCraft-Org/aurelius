@@ -49,7 +49,12 @@ def _alarms(run_logs):
 
 
 def compute(run_logs):
-    """Return {metric id: value} for a list of run logs; None when undefined."""
+    """Return {metric id: value} for a list of run logs; None when undefined.
+
+    Percent metrics (verified_success, alarms_reaching_top, fake_split_rate, resume_rate)
+    are 0 to 100. error_growth_per_tier is a ratio. cost_per_verified_success counts all
+    spend, checks included.
+    """
     finals = _rows(run_logs, "final")
     verified = sum(1 for f in finals if f["verified"])
     credits = sum(r["credits"] for r in _rows(run_logs, "spend"))
