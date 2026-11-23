@@ -1,0 +1,67 @@
+{
+"name": "aurelius",
+"version": "0.1.0",
+"read": "2026-11-22",
+"comment": "The one spec. The docs, the Lair and the Ladder read it. Numbers marked assumed are ours until real runs replace them.",
+"tree": {"span": 47, "tiers": 3, "workers": 103823, "seats": 2257},
+"actions": [
+  {"name": "map", "does": "send one order to many children; pick the cheapest worker type expected to pass", "args": ["order", "children", "worker_type"]},
+  {"name": "check", "does": "sample replies and test them against the order's done check", "args": ["children", "sample"]},
+  {"name": "wait", "does": "sleep until a reply, an alarm, a deadline or a budget line", "args": ["until"]},
+  {"name": "stop", "does": "cancel children, then kill any still running after the grace period", "args": ["children", "grace_s"]},
+  {"name": "report", "does": "send a summary, facts and alarms to the parent", "args": ["summary", "facts", "alarms", "spent"]}
+],
+"order": [
+  {"field": "goal", "type": "string", "means": "what done looks like, in one line"},
+  {"field": "done_check", "type": "string", "means": "the test the reply must pass"},
+  {"field": "scope", "type": "string", "means": "what the worker may touch; everything else is out"},
+  {"field": "reply_shape", "type": "object", "means": "the fields the reply must carry"},
+  {"field": "budget", "type": "object", "means": "tokens, seconds and credits; the seat enforces it"}
+],
+"reply": [
+  {"field": "status", "type": "string", "means": "one of task_states"},
+  {"field": "facts", "type": "array", "means": "each fact with its tag and its source"},
+  {"field": "alarms", "type": "array", "means": "anything the parent must know now"},
+  {"field": "spent", "type": "object", "means": "tokens, seconds and credits used; unknown is never zero"}
+],
+"fact_tags": ["seen", "inferred"],
+"task_states": ["working", "input_required", "completed", "failed", "cancelled"],
+"fix_loop": {"same_worker_tries": 3, "then": "a fresh worker, one type stronger", "last": "park it with a ruling"},
+"dial": {"quality": 1, "cost": 1, "speed": 1, "comment": "relative weights; default balanced; each goal can override"},
+"reward": [
+  {"term": "format", "kind": "gate", "when": "always", "means": "an action that does not parse scores 0"},
+  {"term": "success", "kind": "base", "when": "always", "weight": "dial.quality", "means": "the done check passes, as far as the seat can see"},
+  {"term": "cost", "kind": "bonus", "when": "success", "weight": "dial.cost", "means": "credits left under budget"},
+  {"term": "speed", "kind": "bonus", "when": "success", "weight": "dial.speed", "means": "critical steps left under budget"},
+  {"term": "split", "kind": "bonus", "when": "success and the task can split", "weight": 0.1, "anneal_to": 0, "means": "real parallel work; fades to 0 during training"}
+],
+"rungs": [
+  {"id": "r10", "agents": 10, "tiers": 1, "seats": 1},
+  {"id": "r47", "agents": 47, "tiers": 1, "seats": 1},
+  {"id": "r2209", "agents": 2209, "tiers": 2, "seats": 48},
+  {"id": "r103823", "agents": 103823, "tiers": 3, "seats": 2257}
+],
+"metrics": [
+  {"id": "verified_success", "unit": "%", "better": "higher", "means": "tasks whose done check passes on a fresh check"},
+  {"id": "cost_per_verified_success", "unit": "credits", "better": "lower", "headline": true, "means": "all credits spent divided by verified successes"},
+  {"id": "critical_steps", "unit": "steps", "better": "lower", "means": "seat steps plus the longest child branch, per stage"},
+  {"id": "error_growth_per_tier", "unit": "x", "better": "lower", "means": "wrong-fact rate a tier sends up, divided by the rate it received"},
+  {"id": "alarms_reaching_top", "unit": "%", "better": "higher", "means": "planted alarms that reach the root seat"},
+  {"id": "fake_split_rate", "unit": "%", "better": "lower", "means": "splits that do not shorten the critical path"},
+  {"id": "resume_rate", "unit": "%", "better": "higher", "means": "killed seats that resume to the same result"},
+  {"id": "budget_overruns", "unit": "count", "better": "lower", "goal": 0, "means": "orders that spent past their budget"}
+],
+"baselines": [
+  {"id": "one_agent", "means": "one large worker does the whole task alone"},
+  {"id": "flat_fan_out", "means": "one seat sends every item to its own medium worker; no tiers, no checks"},
+  {"id": "cheapest_that_passes", "means": "flat fan-out, each item to the cheapest type whose skill clears the bar"}
+],
+"worker_types": [
+  {"id": "small", "credits_per_call": 1, "skill": 0.6, "seconds": 2, "source": "assumed"},
+  {"id": "medium", "credits_per_call": 4, "skill": 0.8, "seconds": 4, "source": "assumed"},
+  {"id": "large", "credits_per_call": 16, "skill": 0.93, "seconds": 8, "source": "assumed"}
+],
+"check": {"false_pass": 0.05, "false_fail": 0.05, "source": "assumed until fitted from real runs"},
+"safety": {"default_permission": "ask", "rules": "allow, ask or deny; the last match wins", "human_gate": ["spend", "irreversible", "outward"], "stop": "cancel, then kill after grace_s"},
+"score_row": {"fields": ["date", "commit", "rung", "seat", "workers", "seed", "metrics"], "workers": ["sim", "real"]}
+}
