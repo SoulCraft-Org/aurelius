@@ -4,7 +4,7 @@
 1. Every spec/*.json parses. spec/aurelius.json keeps its shape: 5 actions, 5 order
    fields, 8 metrics with one headline, and rungs whose counts follow the tree math.
 2. Every docs/img/*.svg parses as XML, with no script, no event handler and no
-   outside link. No `url()` outside the file in a style="" attribute, and no animated
+   outside link. No `url()` outside the file in any attribute (style, fill, filter, mask), and no animated
    href (a SMIL animate or set that targets href).
 
 `--self-test` runs built-in bad and good samples through the SVG check.
@@ -80,8 +80,8 @@ def svg_findings(name, text, out):
             out.append(f"{name}: <{tag}> animates an href")
         for key, value in el.attrib.items():
             attr = key.rsplit("}", 1)[-1].lower()
-            if attr == "style" and OUTSIDE.search(value):
-                out.append(f"{name}: style attribute loads something outside the file")
+            if OUTSIDE.search(value):
+                out.append(f"{name}: {attr} attribute loads something outside the file")
             if attr.startswith("on"):
                 out.append(f"{name}: event handler {attr}")
             if attr == "href" and not value.startswith("#"):
@@ -95,6 +95,7 @@ SAMPLES = [  # (label, svg, should be refused)
     ("on* handler", f'<svg {NS}><rect onload="x()"/></svg>', True),
     ("DTD", f'<!DOCTYPE svg [<!ENTITY a "b">]><svg {NS}/>', True),
     ("style attribute url", f'<svg {NS}><rect style="fill:url(https://example.com/a.png)"/></svg>', True),
+    ("fill attribute url", f'<svg {NS}><rect fill="url(https://example.com/a.svg#p)"/></svg>', True),
     ("animated href", f'<svg {NS}><use href="#a"><animate attributeName="xlink:href" to="x"/></use></svg>', True),
     ("good", f'<svg {NS}><style>.a{{animation:b 2s}}</style><rect style="fill:url(#g)"/>'
              f'<use href="#a"/></svg>', False),
