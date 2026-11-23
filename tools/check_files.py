@@ -42,8 +42,8 @@ def check_spec(path, out):
 
 
 def _whole(value):
-    """True for a plain int that is not a bool."""
-    return isinstance(value, int) and not isinstance(value, bool)
+    """True for a plain int above zero that is not a bool: 0 and negatives would divide by zero or break the tree math."""
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
 def spec_findings(name, spec, out):
@@ -73,7 +73,7 @@ def spec_findings(name, spec, out):
         return
     gaps = [k for k in ("span", "tiers", "workers", "seats") if not _whole(tree.get(k))]
     if gaps:
-        out.append(f"{name}: tree needs whole numbers for {gaps}")
+        out.append(f"{name}: tree needs positive whole numbers for {gaps}")
         return
     span, tiers = tree["span"], tree["tiers"]
     if span ** tiers != tree["workers"] or seats(span, tiers) != tree["seats"]:
@@ -88,7 +88,7 @@ def spec_findings(name, spec, out):
         label = rung.get("id", f"rungs[{i}]")
         gaps = [k for k in ("agents", "tiers", "seats") if not _whole(rung.get(k))]
         if gaps:
-            out.append(f"{name}: rung {label} needs whole numbers for {gaps}")
+            out.append(f"{name}: rung {label} needs positive whole numbers for {gaps}")
             continue
         if rung["seats"] != seats(span, rung["tiers"]) or rung["agents"] > span ** rung["tiers"]:
             out.append(f"{name}: rung {label} breaks the tree math")
@@ -163,6 +163,9 @@ def spec_samples():
         ("spec: a rung without tiers", broken(lambda s: s["rungs"][0].pop("tiers")), True),
         ("spec: a rung that is not an object", broken(lambda s: s["rungs"].__setitem__(0, "r10")), True),
         ("spec: a tree without span", broken(lambda s: s["tree"].pop("span")), True),
+        ("spec: a tree with span 0", broken(lambda s: s["tree"].__setitem__("span", 0)), True),
+        ("spec: a tree with tiers -1", broken(lambda s: s["tree"].__setitem__("tiers", -1)), True),
+        ("spec: a rung with 0 tiers", broken(lambda s: s["rungs"][0].__setitem__("tiers", 0)), True),
         ("spec: a tree that is a list", broken(lambda s: s.__setitem__("tree", [47, 3])), True),
         ("spec: a metric that is not an object", broken(lambda s: s["metrics"].__setitem__(0, "verified_success")), True),
         ("spec: metrics that are an object", broken(lambda s: s.__setitem__("metrics", {})), True),
