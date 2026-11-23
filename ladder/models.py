@@ -29,6 +29,8 @@ class ModelSeat(Seat):  # asks the model each round; the key is read per call, n
     def __init__(self, spec, cap_usd=None, max_calls=200):
         # MODEL_CAP_USD lets a workflow split one total cap across rungs; it can only lower the $1 ceiling.
         cap = cap_usd if cap_usd is not None else float(os.environ.get("MODEL_CAP_USD", "1.0"))
+        if not cap >= 0:  # also rejects nan, which would never trip the cap
+            raise ValueError("cap must be a number, 0 or more")
         self.spec, self.cap_usd, self.max_calls = spec, min(cap, 1.0), max_calls
         self.types, self.tools = {w["id"]: w for w in spec["worker_types"]}, tools(spec)
         self.spent_usd, self.calls, self.asks, self.format_errors, self._cache = 0.0, 0, 0, 0, {}

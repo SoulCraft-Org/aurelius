@@ -39,25 +39,30 @@ jobs:
           SEATS: ${{ inputs.seats }}
           RUNGS: ${{ inputs.rungs }}
           PYTHONHASHSEED: "0"
-          # Only the model seat's runs get the key (see the loop); every other seat runs without it.
+          # Copied into an unexported shell variable, then unset: only the model seat's runs get it (see the loop).
           ROUTER_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set -euo pipefail
           set -f
+          key="$ROUTER_KEY"
+          unset ROUTER_KEY
           allowed_seats=" rule one_agent flat_fan_out cheapest_that_passes model "
           allowed_rungs=" r10 r47 r2209 r103823 "
           seats=${SEATS//,/ }
           rungs=${RUNGS//,/ }
           [ -n "${seats//[[:space:]]/}" ] && [ -n "${rungs//[[:space:]]/}" ] || { echo "seats and rungs must not be empty" >&2; exit 1; }
+          seen=" "
           for s in $seats; do
             case "$allowed_seats" in *" $s "*) ;; *) echo "unknown seat: not in the allow-list" >&2; exit 1 ;; esac
+            case "$seen" in *" $s "*) echo "a seat is listed twice" >&2; exit 1 ;; esac
+            seen="$seen$s "
           done
           for r in $rungs; do
             case "$allowed_rungs" in *" $r "*) ;; *) echo "unknown rung: not in the allow-list" >&2; exit 1 ;; esac
           done
           # The model seat costs money: r10 and r47 only, and one $1 ceiling split across the rungs it runs on.
           model_rungs=0
-          case " $seats " in *" model "*)
+          case "$seen" in *" model "*)
             for r in $rungs; do
               case "$r" in r10|r47) model_rungs=$((model_rungs + 1)) ;; *) echo "the model seat runs on r10 and r47 only" >&2; exit 1 ;; esac
             done ;;
@@ -73,7 +78,7 @@ jobs:
               out="$rows/$(printf '%03d' "$n").json"
               if [ "$s" = model ]; then
                 cap=$(python3 -I -c "import sys; print(1.0 / int(sys.argv[1]))" "$model_rungs")
-                OPENROUTER_API_KEY="$ROUTER_KEY" MODEL_CAP_USD="$cap" python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$out"
+                OPENROUTER_API_KEY="$key" MODEL_CAP_USD="$cap" python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$out"
               else
                 python3 -m ladder.run --rung "$r" --seat "$s" --seeds "$seeds" > "$out"
               fi
