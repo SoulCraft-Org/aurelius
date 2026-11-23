@@ -109,7 +109,7 @@ class TestServeGuard(unittest.TestCase):
             rows = self.serve._score(job, 3, 0.0)
         self.assertEqual([r["seed"] for r in rows], [[1002], [1000], [1001]])
 
-    def test_a_failed_or_late_seed_is_a_row_not_a_lost_job(self):
+    def test_a_failed_seed_is_a_row_not_a_lost_job(self):
         job = {"rung": "r10", "split": "val", "seeds": [1000, 1001], "lock": False}
 
         def fake(rung, seat, seeds, kind, split):
@@ -120,6 +120,17 @@ class TestServeGuard(unittest.TestCase):
             now = self.serve.time.monotonic()
             rows = self.serve._score(job, 2, now)
         self.assertEqual((rows[0]["error"], rows[1]["seed"]), ("OSError", [1001]))
+
+    def test_seeds_still_running_at_the_deadline_are_skipped_and_the_finished_rows_return_in_order(self):
+        job, hold = {"rung": "r10", "split": "val", "seeds": [1000, 1001, 1002], "lock": False}, threading.Event()
+        self.addCleanup(hold.set)  # let the abandoned seed end with the test
+
+        def fake(rung, seat, seeds, kind, split):  # 1001 is slow: it holds the one thread past the deadline, 1002 is queued behind it
+            if seeds == (1001,):
+                hold.wait(10)
+            return {"seed": list(seeds)}
+        t0 = self.serve.time.monotonic() - (self.serve.TIMEOUT_S - 300) + 0.3  # the deadline is 0.3 s away
         with mock.patch("ladder.run.score", fake):
-            late = self.serve._score(job, 2, now - self.serve.TIMEOUT_S)  # past the deadline: nothing starts
-        self.assertEqual([r["error"] for r in late], ["skipped: out of time"] * 2)
+            rows = self.serve._score(job, 1, t0)
+        self.assertEqual(rows[0], {"seed": [1000]})
+        self.assertEqual([(r["seed"], r["error"]) for r in rows[1:]], [([1001], "skipped: out of time"), ([1002], "skipped: out of time")])

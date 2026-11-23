@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -90,17 +90,18 @@ def run_jobs(jobs, model=MODEL, threads=THREADS):  # model: one of WEIGHTS; the 
 
 def _score(job, threads, t0):  # one row per seed, in seed order; a seed has its own seat and cap, so 100 seeds do not share one cap
     from ladder.run import score  # inside the container only: /root holds lair, ladder and spec
-    deadline = t0 + TIMEOUT_S - 300  # no seed starts past it: Modal's hard stop would discard every row
+    deadline = t0 + TIMEOUT_S - 300  # the wait ends here: Modal's hard stop would discard every row, and a seed in flight has no clock of its own
 
     def one(seed):
-        if time.monotonic() > deadline:
-            return {"job": job, "seed": [seed], "error": "skipped: out of time"}
         try:
             return score(job["rung"], "model", (seed,), "table", job["split"])
         except Exception as err:  # one seed's failure must not cost the rest; the type only, never a body
             return {"job": job, "seed": [seed], "error": type(err).__name__}
-    with ThreadPoolExecutor(max(1, min(threads, len(job["seeds"])))) as pool:
-        return list(pool.map(one, job["seeds"]))  # map keeps the order of the seeds, whoever finishes first
+    pool = ThreadPoolExecutor(max(1, min(threads, len(job["seeds"]))))
+    futures = [pool.submit(one, seed) for seed in job["seeds"]]
+    wait(futures, timeout=max(0.0, deadline - time.monotonic()))
+    pool.shutdown(wait=False, cancel_futures=True)  # queued seeds never start; a seed in flight is left behind, and its row is lost
+    return [f.result() if f.done() and not f.cancelled() else {"job": job, "seed": [seed], "error": "skipped: out of time"} for seed, f in zip(job["seeds"], futures)]
 
 
 def _workers(job, url, model, t0):  # real workers over one seeded Library: the replies, never the answers

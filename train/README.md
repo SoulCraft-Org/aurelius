@@ -52,9 +52,10 @@ Measure r47 first with `--job r47:val:1000-1003`: only r10 has run (step 25, smo
 | Smoke, measured: 560 GPU seconds, about 300 of them boot and load, so about 260 s for one r10 seed | 9 min | $0.12 |
 | One r10 run of 100 seeds: 16 at once, assuming vLLM batches 16 requests for about 8 times the single-seed rate, plus 5 min boot | about 1 h | about $0.80 |
 | One r47 run of 100 seeds: not measured; budget up to the 2 hour timeout | up to 2 h | up to $1.60 |
-| All six runs | about 9 h at most | about $7.50 at most, under the $15 cap |
+| All six runs, expected | about 9 h | about $7.50 |
+| All six runs, true worst case: 6 times the 2 hour timeout | 12 h | $9.60, under the $15 cap. The guard still checks each run against the ledger before it starts |
 
-Each run adds its own ledger row, and the guard reads the ledger before the next one, so the cap holds. A seed that has not started 5 minutes before the timeout is returned as a `skipped` row, so a long run returns its finished seeds: run the missing seeds again as a new job. Each seed has its own seat and cap, so a failed seed is one `error` row.
+Each run adds its own ledger row, and the guard reads the ledger before the next one, so the cap holds. The container stops waiting 5 minutes before the timeout, so Modal's hard stop never discards the finished rows. Every seed then unfinished, running or queued, is returned as a `skipped` row: run those seeds again as a new job. The GPU seconds are still recorded. Each seed has its own seat and cap, so a failed seed is one `error` row. `model_stats.spent_usd` in a row is that seat's wall time at list price, and the seats overlap: never sum it across rows. The ledger row is the spend record.
 
 ## Choices of the scored seat
 
