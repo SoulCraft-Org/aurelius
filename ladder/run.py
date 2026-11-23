@@ -177,7 +177,7 @@ def score(rung_id, seat, seeds=(0, 1, 2), kind="table"):
     return {"date": datetime.now(timezone.utc).date().isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "rung": rung_id, "seat": seat,
             "workers": "sim", **({"model": MODEL} if model else {}), "seed": list(seeds),
-            "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind, model) for s in seeds])}
+            "metrics": compute([run_once(rung_id, seat, load_spec(), s, kind, model=model) for s in seeds])}
 
 
 def parse_args(argv=None):
