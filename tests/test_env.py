@@ -67,6 +67,14 @@ class EnvTest(unittest.TestCase):
                 env.act(acts)
             self.assertEqual(state(env), before)
 
+    def test_a_map_without_a_worker_type_raises_value_error_and_changes_nothing(self):
+        env = LairEnv(SPEC)
+        env.reset("r10", 0)
+        before = state(env)
+        with self.assertRaises(ValueError):
+            env.act([{"name": "map", "children": ["k0"], "order": ORDER}])
+        self.assertEqual(state(env), before)
+
     def test_a_list_that_costs_more_than_the_budget_is_refused(self):
         env = LairEnv(SPEC)
         env.reset("r10", 0)
