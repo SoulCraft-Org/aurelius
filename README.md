@@ -34,7 +34,7 @@ Each rung's recorded runs become the next rung's stand-ins ([training](docs/trai
 
 First scores, 2026-11-23, from [one `ladder.yml` run](https://github.com/SoulCraft-Org/aurelius/actions/runs/45107701093) on commit `9d525ad`. Source: [`ladder/scores.json`](ladder/scores.json).
 
-**Verified success on r10, the only rung where any seat passes (%)**
+**Verified success on r10, the only rung with any verified run (%)**
 
 ```mermaid
 xychart-beta
@@ -64,7 +64,7 @@ xychart-beta
 
 Cost per verified success exists for one row: `rule` on r10, 131 credits. Every other row has no verified success, so it shows n/a.
 
-**Finding:** at today's assumed worker rates and a budget of 5 credits per agent, no seat reaches the 95% verified bar above 10 agents; closing that gap is what training is for.
+**Finding:** a run is verified when it scores 95% or more. Only the rule seat gets there, in 1 of 3 runs on r10. No seat gets there with 47 agents or more. These use assumed worker rates and 5 credits per agent. Closing that gap is the goal of training, not a result.
 
 - Every score is sim.
 - Worker rates are assumed until fitted from real runs.
